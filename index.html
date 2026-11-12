@@ -337,7 +337,7 @@
     return safe.replace(re, '<b>$1</b>');
   }
   // Display renames (Dave 11/12): Core's "Preppers" shows as "Prepper A".
-  var LAST_ROOMS = [], LAST_FLOAT = [], LAST_LUNCH = null, LAST_EXTRA = [], LAST_LEAVE = {}, LAST_LT = {}, LAST_NH = [], LAST_FNOTE = {}, OPEN_MODAL = null;
+  var LAST_ROOMS = [], LAST_FLOAT = [], LAST_LUNCH = null, LAST_EXTRA = [], LAST_LEAVE = {}, LAST_LT = {}, LAST_NH = [], LAST_FNOTE = {}, LAST_SG = [], OPEN_MODAL = null;
   var KST = {here:{c:'here',l:'Here'}, out:{c:'out',l:'Signed out'}, no:{c:'no',l:'Not here'}, abs:{c:'abs',l:'Absent'}};
   var KORDER = {here:0, no:1, abs:2, out:3};
   function legendHtml(ros){
@@ -426,6 +426,14 @@
           var note = LAST_FNOTE[n] || LAST_FNOTE[String(n)] || '';
           return (note ? ' <span class="lv">· (' + esc(note) + ')</span>' : '') + lv(n);
         }) : '<div class="mnote">Nobody is floating right now.</div>') + '</div>';
+      if (LAST_SG.length) {
+        fh += '<div class="mroom"><h3>Probably gone (forgot to clock out?)</h3>' +
+          nameTable(LAST_SG.map(function(x){ return x.name; }), '🕓', function(n){
+            var row = null;
+            LAST_SG.forEach(function(x){ if (x.name === n) row = x; });
+            return (row && row.leave) ? ' <span class="lv">· left ' + esc(row.leave) + '</span>' : '';
+          }) + '</div>';
+      }
       var eh = '<div class="mroom"><h3>Classrooms with extra teachers<small>any one listed could step out if the room stays in ratio</small></h3>' +
         (LAST_EXTRA.length ? LAST_EXTRA.map(function(x){
           var names = x.t.map(function(n){ return tName(n); }).sort(function(a, b){ return a.localeCompare(b); });
@@ -681,8 +689,9 @@
     });
     LAST_ROOMS.forEach(function(r){ var t = Array.isArray(r.teachers) ? r.teachers : []; if (!(Number(r.kids) || 0) && t.length && !seenX[r.name]) { seenX[r.name] = 1; ex.push({room: r.name, kids: 0, nt: t.length, t: t, empty: true}); } });
     LAST_EXTRA = ex;
+    LAST_SG = Array.isArray(snap.staffGone) ? snap.staffGone.filter(function(x){ return x && x.name; }).map(function(x){ return {name: String(x.name), leave: x.leave ? String(x.leave) : ''}; }) : [];
     var flN = LAST_FLOAT.length;
-    if (flN || ex.length) $('totals').innerHTML += '<span class="tot click" id="totFloat" title="See floaters and extra teachers">🧍 <b>' + (flN + ex.length) + '</b>floaters and extras<span class="more">see ›</span></span>';
+    if (flN || ex.length || LAST_SG.length) $('totals').innerHTML += '<span class="tot click" id="totFloat" title="See floaters and extra teachers">🧍 <b>' + (flN + ex.length) + '</b>floaters and extras<span class="more">see ›</span></span>';
     LAST_NH = [];
     if (Array.isArray(snap.staffOut)) {
       var NHR = {called:0, late:1, later:2};
