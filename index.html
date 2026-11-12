@@ -477,13 +477,16 @@
     var realA = alerts.filter(function(a){ return !SUG[a.type]; });
     var sugA = alerts.filter(function(a){ return !!SUG[a.type]; });
     var ah = '';
-    if (!realA.length) {
+    // Combines show under Alerts as calm cards: no flash, no pop-up, no chime, no room red border (Dave 11/12 3:30 PM)
+    var combA = sugA.filter(function(a){ return a.type === 'combine'; });
+    if (!realA.length && !combA.length) {
       ah = '<div class="allgood">No alerts right now ✅ 🎉</div>';
     } else {
       realA.forEach(function(a){ ah += card(a); });
+      combA.forEach(function(a){ ah += card(a).replace(' isnew', '').replace(' · NEW', ''); });
     }
     $('alerts').innerHTML = ah;
-    var sugShow = sugA.filter(function(a){ return a.type !== 'extra'; }); // extras live in the Floaters and extras pill (Dave 11/12)
+    var sugShow = sugA.filter(function(a){ return a.type !== 'extra' && a.type !== 'combine'; }); // extras live in the Floaters and extras pill; combines live under Alerts (Dave 11/12)
     var sh = ''; sugShow.forEach(function(a){ sh += card(a); });
     $('suggestions').innerHTML = sh;
     $('sugWrap').className = sugShow.length ? '' : 'hidden';
