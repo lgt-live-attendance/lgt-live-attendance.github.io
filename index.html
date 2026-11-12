@@ -445,7 +445,8 @@
       ((snap.onLunch == null || snap.onLunch === '') ? '' : '<span class="tot">🥪 <b>' + (Number(snap.onLunch) || 0) + '</b>on lunch</span>');
     $('rooms').innerHTML = rh || '<div class="allgood" style="grid-column:1/-1">No classroom data yet 🎈</div>';
 
-    if (fresh.length) fireAlerts(fresh);
+    var freshPop = fresh.filter(function(a){ return !({combine:1, extra:1, idle:1, empty:1})[a.type]; });
+    if (freshPop.length) fireAlerts(freshPop);
   }
 
   function updateStatus(){
