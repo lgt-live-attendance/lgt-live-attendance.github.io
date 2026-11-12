@@ -61,10 +61,9 @@
     box-shadow:0 4px 0 rgba(0,0,0,.15);transition:transform .08s;
   }
   button:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.15)}
-  #enableBtn{background:var(--green);color:#fff;font-size:16px}
-  #testBtn{background:#fff;color:var(--ink)}
-  .perm{background:#fff;border-radius:999px;padding:8px 14px;font-weight:800;font-size:14px;box-shadow:var(--shadow)}
-  .note{background:#fff3cd;color:#7a5200;border:2px dashed var(--amber);border-radius:14px;padding:8px 14px;font-weight:800;font-size:14px;display:none}
+  #allowBtn{background:var(--green);color:#fff;font-size:18px;padding:12px 22px}
+  .perm{background:#fff;border-radius:999px;padding:6px 12px;font-weight:800;font-size:13px;box-shadow:var(--shadow)}
+  .note{background:#fff3cd;color:#7a5200;border-radius:12px;padding:6px 12px;font-weight:700;font-size:13px;display:none;max-width:40rem;line-height:1.35}
   .note.show{display:block}
   h2{font-size:clamp(16px,1.8vw,22px);margin:12px 4px 6px;font-weight:900}
   /* Alerts */
@@ -165,8 +164,7 @@
   </header>
 
   <div class="controls">
-    <button id="enableBtn" type="button">Enable alerts 🔔</button>
-    <button id="testBtn" type="button">Test alert</button>
+    <button id="allowBtn" class="hidden" type="button">Allow alerts 🔔</button>
     <span class="perm" id="perm">Pop-ups: checking…</span>
     <span class="note" id="note"></span>
   </div>
@@ -406,13 +404,23 @@
 
   // ---------- notifications / sound / title ----------
   function showNote(msg){ var n = $('note'); n.textContent = msg; n.classList.add('show'); }
+  function hideNote(){ var n = $('note'); n.textContent = ''; n.classList.remove('show'); }
   function permStatus(){
     var s;
     if (!('Notification' in window)) s = 'unavailable';
     else s = Notification.permission; // default | granted | denied
-    var map = {granted:'Pop-ups: ON ✅', denied:'Pop-ups: blocked ⛔', 'default':'Pop-ups: not enabled yet', unavailable:'Pop-ups: unavailable here'};
-    $('perm').textContent = map[s] || ('Pop-ups: ' + s);
-    if (s === 'denied' || s === 'unavailable') showNote('Pop-ups blocked in this frame' + (window.top !== window.self ? ' (page is inside an embedded frame)' : '') + '. Chime and tab flashing still work.');
+    var on = s === 'granted';
+    $('perm').textContent = on ? 'Pop-ups: ON ✅' : 'Pop-ups: not allowed yet';
+    // Only offer the allow button while Chrome has not been asked yet.
+    // Once granted or denied, hide it for good — there is no off switch.
+    var btn = $('allowBtn');
+    if (s === 'default') btn.classList.remove('hidden');
+    else btn.classList.add('hidden');
+    if (s === 'denied') {
+      showNote('Chrome is blocking pop-ups. Click the icon at the left of the address bar, then Site settings, then Notifications, then Allow.');
+    } else {
+      hideNote();
+    }
     return s;
   }
 
@@ -455,14 +463,12 @@
   function plain(a){ return String(a.text || ''); }
   function notify(body){
     try {
-      if (!('Notification' in window)) { showNote('Pop-ups blocked in this frame (Notification API unavailable).'); return false; }
-      if (Notification.permission !== 'granted') { if (Notification.permission === 'denied') showNote('Pop-ups blocked in this frame (permission denied).'); return false; }
+      if (!('Notification' in window) || Notification.permission !== 'granted') return false;
       if (typeof showViaServiceWorker === 'function' && showViaServiceWorker(body)) return true;
       var n = new Notification('LGT Alert 🚨', {body: body, requireInteraction: true, tag: 'lgt-' + Date.now()});
       n.onclick = function(){ try { window.focus(); n.close(); } catch(e){} };
       return true;
     } catch(e) {
-      showNote('Pop-ups blocked in this frame (' + (e && e.message ? e.message : 'error') + ').');
       return false;
     }
   }
@@ -472,26 +478,24 @@
     if (!document.hasFocus()) flashTitle(list.length);
   }
 
-  $('enableBtn').addEventListener('click', function(){
+  $('allowBtn').addEventListener('click', function(){
     unlockAudio();
-    chime();
     try {
       if (!('Notification' in window)) { permStatus(); return; }
       var p = Notification.requestPermission(function(){ permStatus(); });
-      if (p && typeof p.then === 'function') p.then(function(){ permStatus(); }, function(){ permStatus(); showNote('Pop-ups blocked in this frame.'); });
+      if (p && typeof p.then === 'function') p.then(function(){ permStatus(); }, function(){ permStatus(); });
     } catch(e) {
-      showNote('Pop-ups blocked in this frame (' + (e && e.message ? e.message : 'error') + ').');
+      permStatus();
     }
-    $('enableBtn').textContent = 'Alerts enabled 🔔 (sound on)';
   });
-  $('testBtn').addEventListener('click', function(){
+  // Browsers require one gesture before AudioContext will play. Any click or tap unlocks it.
+  function onFirstGesture(){
     unlockAudio();
-    var ok = notify('Test alert: this is what a new LGT alert looks like.');
-    chime();
-    flashTitle(1);
-    setTimeout(stopFlash, 6000);
-    if (!ok && ('Notification' in window) && Notification.permission === 'default') showNote('Click “Enable alerts 🔔” first, then test again.');
-  });
+    document.removeEventListener('pointerdown', onFirstGesture, true);
+    document.removeEventListener('keydown', onFirstGesture, true);
+  }
+  document.addEventListener('pointerdown', onFirstGesture, true);
+  document.addEventListener('keydown', onFirstGesture, true);
 
   // ---------- clock + polling ----------
   function tick(){
