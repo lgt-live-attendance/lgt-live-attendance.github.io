@@ -332,7 +332,7 @@
     return safe.replace(re, '<b>$1</b>');
   }
   // Display renames (Dave 11/12): Core's "Preppers" shows as "Prepper A".
-  var LAST_ROOMS = [], LAST_FLOAT = [], LAST_LUNCH = null, LAST_EXTRA = [], LAST_LEAVE = {}, LAST_LT = {}, OPEN_MODAL = null;
+  var LAST_ROOMS = [], LAST_FLOAT = [], LAST_LUNCH = null, LAST_EXTRA = [], LAST_LEAVE = {}, LAST_LT = {}, LAST_NH = [], OPEN_MODAL = null;
   var KST = {here:{c:'here',l:'Here'}, out:{c:'out',l:'Signed out'}, no:{c:'no',l:'Not here'}, abs:{c:'abs',l:'Absent'}};
   var KORDER = {here:0, no:1, abs:2, out:3};
   var LEGEND = '<div class="mnote"><span class="kd here"></span> Here · <span class="kd no"></span> Not here yet · <span class="kd abs"></span> Marked absent in Core · <span class="kd out"></span> Signed out (went home)</div>';
@@ -401,6 +401,18 @@
         }).join('') : '<div class="mnote">No rooms have extra teachers right now.</div>') + '</div>';
       $('modalBody').innerHTML = fh + eh;
     }
+    if (kind === 'nothere') {
+      // Not Here (Dave 11/12 4:08 PM): scheduled teachers with no punch yet, from snapshot.staffOut
+      $('modalTitle').textContent = '🕒 Not Here';
+      var NHG = [['called', 'Called out or off', 'from the attendance sheet'], ['late', 'Late', 'past their start time, not clocked in'], ['later', 'Coming later', 'by start time']];
+      var nhh = NHG.map(function(g){
+        var l = LAST_NH.filter(function(x){ return x.g === g[0]; });
+        if (!l.length) return '';
+        return '<div class="mroom"><h3>' + g[1] + '<small>' + g[2] + '</small></h3><table style="width:100%;border-collapse:collapse;font-size:15px">' +
+          l.map(function(x){ return '<tr><td style="padding:6px 4px;border-top:1px solid #eef1f5;font-weight:800">🕒 ' + esc(tName(x.name)) + (x.why ? ' <span class="lv">· ' + esc(x.why) + '</span>' : '') + '</td></tr>'; }).join('') + '</table></div>';
+      }).join('');
+      $('modalBody').innerHTML = LAST_NH.length ? '<div class="mnote">' + LAST_NH.length + ' scheduled today and not here</div>' + nhh : '<div class="mnote">Every teacher scheduled today is here or has already worked.</div>';
+    }
     $('modalBg').classList.remove('hidden');
   }
   function closeModal(){ OPEN_MODAL = null; $('modalBg').classList.add('hidden'); }
@@ -410,6 +422,7 @@
     if (t.closest && t.closest('#totFloat')) { openModal('float'); return; }
     if (t.closest && t.closest('#totT')) { openModal('teachers'); return; }
     if (t.closest && t.closest('#totLunch')) { openModal('lunch'); return; }
+    if (t.closest && t.closest('#totNH')) { openModal('nothere'); return; }
     if (t.id === 'modalX' || t.id === 'modalBg') { closeModal(); return; }
     var card = t.closest && t.closest('#rooms .room');
     if (card && card.getAttribute('data-room')) openModal('room:' + card.getAttribute('data-room'));
@@ -616,6 +629,13 @@
     LAST_EXTRA = ex;
     var flN = Array.isArray(snap.floaters) ? snap.floaters.length : 0;
     if (Array.isArray(snap.floaters) || ex.length) $('totals').innerHTML += '<span class="tot click" id="totFloat" title="See floaters and extra teachers">🧍 <b>' + (flN + ex.length) + '</b>floaters and extras<span class="more">see ›</span></span>';
+    LAST_NH = [];
+    if (Array.isArray(snap.staffOut)) {
+      var NHR = {called:0, late:1, later:2};
+      LAST_NH = snap.staffOut.filter(function(x){ return x && x.name; }).map(function(x){ return {name: String(x.name), g: NHR[x.g] != null ? String(x.g) : 'later', why: x.why ? String(x.why) : ''}; });
+      LAST_NH.sort(function(a, b){ return NHR[a.g] - NHR[b.g]; }); // feed order (start time) kept within each group
+      $('totals').innerHTML += '<span class="tot click" id="totNH" title="See teachers scheduled today who are not here">🕒 <b>' + LAST_NH.length + '</b>Not Here<span class="more">see ›</span></span>';
+    }
     LAST_FLOAT = Array.isArray(snap.floaters) ? snap.floaters : [];
     LAST_LUNCH = Array.isArray(snap.lunch) ? snap.lunch : null;
     $('rooms').innerHTML = rh || '<div class="allgood" style="grid-column:1/-1">No classroom data yet 🎈</div>';
