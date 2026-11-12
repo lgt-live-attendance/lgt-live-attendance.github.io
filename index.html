@@ -107,6 +107,23 @@
   .tag.attention{background:#fff3cd;color:#7a5200;white-space:normal}
   .tag.closed-tag{background:#d9dee6;color:#5c6573}
   .tag.alarm-tag{background:#e53935;color:#fff}
+  .tot.click{cursor:pointer;border-color:#1e88e5;box-shadow:0 2px 0 #1e88e5}
+  .tot.click:hover{background:#e3f2fd}
+  .tot .more{font-size:11px;font-weight:700;color:#1e88e5;margin-left:6px}
+  .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow:auto}
+  .modal{background:#fff;border-radius:18px;max-width:720px;width:100%;padding:18px 20px 22px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
+  .modal-head h2{margin:0}
+  .modal-x{border:0;background:#eef1f5;border-radius:999px;font-size:20px;font-weight:900;width:38px;height:38px;cursor:pointer}
+  .mroom{border-top:2px solid #eef1f5;padding:10px 0 4px}
+  .mroom h3{margin:0 0 6px;font-size:17px}
+  .mroom h3 small{font-weight:700;color:#5c6573;font-size:13px;margin-left:6px}
+  .kid{display:inline-flex;align-items:center;gap:6px;margin:3px 6px 3px 0;padding:4px 10px;border-radius:999px;font-weight:700;font-size:14px;border:2px solid transparent}
+  .kid.here{background:#e8f5e9;border-color:#66bb6a}
+  .kid.no{background:#fff3e0;border-color:#ffa726}
+  .kid.out{background:#eef1f5;border-color:#cfd6df;color:#5c6573}
+  .kid .st{font-size:11px;font-weight:800;text-transform:uppercase;opacity:.75}
+  .mnote{color:#5c6573;font-weight:600;margin:8px 0}
   .room.alarm{outline:4px solid #e53935;outline-offset:-2px;background-color:#fff5f5}
   .counts{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 0 4px}
   .kids{display:flex;align-items:baseline;gap:6px}
@@ -192,6 +209,8 @@
     <div class="totals" id="totals"></div>
     <div class="grid" id="rooms"></div>
   </section>
+
+  <div id="modalBg" class="modal-bg hidden"><div class="modal" role="dialog" aria-modal="true"><div class="modal-head"><h2 id="modalTitle"></h2><button class="modal-x" id="modalX" aria-label="Close">×</button></div><div id="modalBody"></div></div></div>
 
   <footer id="foot">LGT Live Attendance</footer>
 </div>
@@ -289,6 +308,40 @@
     return safe.replace(re, '<b>$1</b>');
   }
   // Display renames (Dave 11/12): Core's "Preppers" shows as "Prepper A".
+  var LAST_ROOMS = [], OPEN_MODAL = null;
+  var KST = {here:{c:'here',l:'Here'}, out:{c:'out',l:'Signed out'}, no:{c:'no',l:'Not here'}};
+  function kidsModalHtml(){
+    var any = LAST_ROOMS.some(function(r){ return Array.isArray(r.roster) && r.roster.length; });
+    if (!any) return '<div class="mnote">Kid names will show here after the next attendance check.</div>';
+    var h = '<div class="mnote">✅ Here · 🏠 Signed out (went home) · ❌ Not here yet (scheduled today)</div>';
+    LAST_ROOMS.forEach(function(r){
+      var ros = Array.isArray(r.roster) ? r.roster.slice() : [];
+      if (!ros.length) return;
+      var order = {here:0, no:1, out:2};
+      ros.sort(function(a, b){ return (order[a.s] - order[b.s]) || String(a.n).localeCompare(String(b.n)); });
+      var cnt = {here:0, no:0, out:0};
+      ros.forEach(function(k){ if (cnt[k.s] != null) cnt[k.s]++; });
+      h += '<div class="mroom"><h3>' + esc(r.name) + '<small>' + cnt.here + ' here · ' + cnt.no + ' not here · ' + cnt.out + ' signed out</small></h3>' +
+        ros.map(function(k){
+          var m = KST[k.s] || KST.here;
+          var ic = k.s === 'out' ? '🏠' : (k.s === 'no' ? '❌' : '✅');
+          return '<span class="kid ' + m.c + '">' + ic + ' ' + esc(k.n) + ' <span class="st">' + m.l + '</span></span>';
+        }).join('') + '</div>';
+    });
+    return h;
+  }
+  function openModal(kind){
+    OPEN_MODAL = kind;
+    if (kind === 'kids') { $('modalTitle').textContent = '🧒 Kids by classroom'; $('modalBody').innerHTML = kidsModalHtml(); }
+    $('modalBg').classList.remove('hidden');
+  }
+  function closeModal(){ OPEN_MODAL = null; $('modalBg').classList.add('hidden'); }
+  document.addEventListener('click', function(e){
+    var t = e.target;
+    if (t.closest && t.closest('#totKids')) { openModal('kids'); return; }
+    if (t.id === 'modalX' || t.id === 'modalBg') closeModal();
+  });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeModal(); });
   function dispName(t){ return String(t == null ? '' : t).replace(/\bPreppers\b/g, 'Prepper A').replace(/School-Age Experience/g, 'School Age'); }
   function alertKey(a){ return String(a.type || '') + '|' + String(a.text || ''); }
 
@@ -449,10 +502,12 @@
       (Array.isArray(item.r.teachers) ? item.r.teachers : []).forEach(function(n){ if (n) totT[String(n).trim().toLowerCase()] = 1; });
     });
     var nT = Object.keys(totT).length;
-    $('totals').innerHTML = '<span class="tot">🧒 <b>' + totKids + '</b>' + (totKids === 1 ? 'kid' : 'kids') + ' checked in</span>' +
+    LAST_ROOMS = rooms.map(function(item){ return item.r; });
+    $('totals').innerHTML = '<span class="tot click" id="totKids" title="See every kid">🧒 <b>' + totKids + '</b>' + (totKids === 1 ? 'kid' : 'kids') + ' checked in<span class="more">see list ›</span></span>' +
       '<span class="tot">👩‍🏫 <b>' + nT + '</b>' + (nT === 1 ? 'teacher' : 'teachers') + ' in classrooms</span>' +
       ((snap.onLunch == null || snap.onLunch === '') ? '' : '<span class="tot">🥪 <b>' + (Number(snap.onLunch) || 0) + '</b>on lunch</span>');
     $('rooms').innerHTML = rh || '<div class="allgood" style="grid-column:1/-1">No classroom data yet 🎈</div>';
+    if (OPEN_MODAL) openModal(OPEN_MODAL);
 
     var freshPop = fresh.filter(function(a){ return !({combine:1, extra:1, idle:1, empty:1})[a.type]; });
     if (freshPop.length) fireAlerts(freshPop);
