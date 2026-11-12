@@ -298,7 +298,8 @@
     return o || f.split(/\s+/)[0];
   }
   // Scheduled leave time from Core (Dave 11/12), from snapshot.leave {"Full Name":"5:30 PM"}.
-  function lv(full){ var v = LAST_LEAVE[String(full || '').trim().toLowerCase()]; return v ? ' <span class="lv">· leaves ' + esc(v) + '</span>' : ''; }
+  function closingNow(){ var p = new Intl.DateTimeFormat('en-US',{timeZone:'America/Chicago',hour:'numeric',hour12:false}).format(new Date()); return parseInt(p,10) >= 15; } // leave times only 3 PM to close (Dave 11/12)
+  function lv(full){ if (!closingNow()) return ''; var v = LAST_LEAVE[String(full || '').trim().toLowerCase()]; return v ? ' <span class="lv">· leaves ' + esc(v) + '</span>' : ''; }
   function shortenNames(text, fulls){
     var out = String(text || '');
     (fulls || []).slice().sort(function(a,b){ return b.length - a.length; }).forEach(function(n){
@@ -472,7 +473,17 @@
       var t = META[a.type] ? a.type : 'extra';
       var m = META[t];
       var isNew = fresh.indexOf(a) !== -1;
-      return '<div class="alert ' + t + (isNew ? ' isnew' : '') + '"><div class="ic">' + m.ic + '</div><div><span class="lbl">' + esc(m.lbl) + (isNew ? ' · NEW' : '') + '</span>' + boldify(shortenNames(dispName(a.text), allT), (a.bold || []).map(function(n){ return shortenNames(dispName(n), allT); })) + '</div></div>';
+      var body = boldify(shortenNames(dispName(a.text), allT), (a.bold || []).map(function(n){ return shortenNames(dispName(n), allT); }));
+      if (t === 'combine') {
+        // Dave 11/12 3:45 PM: COMBINE in caps, bold kid total, teachers' leave times
+        body = body.replace(/^Combine\b/, 'COMBINE').replace(/(\d+ kids total)/, '<b>$1</b>');
+        (a.bold || []).forEach(function(n){
+          var l = lv(n); if (!l) return;
+          var sh = '<b>' + esc(shortenNames(dispName(n), allT)) + '</b>';
+          body = body.split(sh).join(sh + l.replace('· leaves ', '(leaves ').replace('</span>', ')</span>'));
+        });
+      }
+      return '<div class="alert ' + t + (isNew ? ' isnew' : '') + '"><div class="ic">' + m.ic + '</div><div><span class="lbl">' + esc(m.lbl) + (isNew ? ' · NEW' : '') + '</span>' + body + '</div></div>';
     }
     var realA = alerts.filter(function(a){ return !SUG[a.type]; });
     var sugA = alerts.filter(function(a){ return !!SUG[a.type]; });
