@@ -106,6 +106,9 @@
   .badge{background:#f1f4fa;color:var(--muted)}
   .tag.attention{background:#fff3cd;color:#7a5200;white-space:normal}
   .tag.closed-tag{background:#d9dee6;color:#5c6573}
+  .tag.alarm-tag{background:#e53935;color:#fff}
+  .room.alarm{outline:4px solid #e53935;outline-offset:-2px;animation:roomflash 1s infinite}
+  @keyframes roomflash{0%,100%{box-shadow:0 0 0 0 rgba(229,57,53,.7);background-color:#fff}50%{box-shadow:0 0 18px 6px rgba(229,57,53,.55);background-color:#ffe3e3}}
   .counts{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 0 4px}
   .kids{display:flex;align-items:baseline;gap:6px}
   .kids .n{font-size:clamp(24px,2.5vw,34px);font-weight:900;line-height:1;color:var(--c,#1e88e5)}
@@ -397,12 +400,18 @@
       srcRooms.push({name:'School Age', kids:0, teachers:[], signedOut:0});
     }
     var rooms = srcRooms.map(function(r, i){
-        var c = {}; for (var x in r) c[x] = r[x]; c.name = dispName(r.name); return {r:c, i:i};
+        var c = {}; for (var x in r) c[x] = r[x]; c.rawName = r.name; c.name = dispName(r.name); return {r:c, i:i};
       })
       .sort(function(a, b){
         var d = ageRank(a.r.name) - ageRank(b.r.name);
         return d || (a.i - b.i);
       });
+    var alarmText = realA.map(function(a){ return (String(a.text || '') + ' | ' + (a.bold || []).join(' | ')).toLowerCase(); }).join(' || ');
+    function hasAlarm(raw){
+      var k = String(raw || '').toLowerCase().trim(); if (!k) return false;
+      var re = new RegExp('(^|[^a-z0-9])' + k.replace(/[^a-z0-9 -]/g, '.') + '($|[^a-z0-9])');
+      return re.test(alarmText);
+    }
     var rh = '', activeIdx = 0;
     rooms.forEach(function(item){
       var r = item.r;
@@ -422,6 +431,7 @@
         cls += ' closed';
         tags += '<span class="tag closed-tag">Closed</span>';
       }
+      if (hasAlarm(r.rawName) || hasAlarm(r.name)) { cls += ' alarm'; tags = '<span class="tag alarm-tag">🚨 Needs attention</span>' + tags; }
       var nh = (r.notHere == null || r.notHere === '') ? 0 : (Number(r.notHere) || 0);
       if (nh > 0) tags += '<span class="badge nothere">' + nh + ' not here</span>';
       tags += '<span class="badge">' + so + ' signed out</span>';
