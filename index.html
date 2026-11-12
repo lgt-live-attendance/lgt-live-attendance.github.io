@@ -348,7 +348,8 @@
     var m = KST[k.s] || KST.here;
     return '<span class="kid ' + m.c + '"><span class="kd ' + m.c + '"></span>' + esc(k.n) + ' <span class="st">' + m.l + '</span></span>';
   }
-  function sortRoster(r){ var ros = Array.isArray(r.roster) ? r.roster.slice() : []; ros.sort(function(a, b){ return ((KORDER[a.s] == null ? 9 : KORDER[a.s]) - (KORDER[b.s] == null ? 9 : KORDER[b.s])) || String(a.n).localeCompare(String(b.n)); }); return ros; }
+  function kRank(k){ if (k.s === 'here') return k.h ? 1 : 0; return ({out:2, abs:3, no:4})[k.s] != null ? ({out:2, abs:3, no:4})[k.s] : 9; }
+  function sortRoster(r){ var ros = Array.isArray(r.roster) ? r.roster.slice() : []; ros.sort(function(a, b){ return (kRank(a) - kRank(b)) || (kRank(a) === 1 ? String(a.h).localeCompare(String(b.h)) : 0) || String(a.n).localeCompare(String(b.n)); }); return ros; }
   function rosterCounts(ros){ var c = {here:0, no:0, abs:0, out:0}; ros.forEach(function(k){ if (c[k.s] != null) c[k.s]++; }); return c; }
   function cntLine(c){ return c.here + ' here · ' + c.no + ' not here' + (c.abs ? ' · ' + c.abs + ' absent' : '') + ' · ' + c.out + ' signed out'; }
   function kidsModalHtml(){
