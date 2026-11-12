@@ -123,6 +123,14 @@
   .kid.no{background:#fff3e0;border-color:#ffa726}
   .kid.out{background:#eef1f5;border-color:#cfd6df;color:#5c6573}
   .kid .st{font-size:11px;font-weight:800;text-transform:uppercase;opacity:.75}
+  .kid.abs{background:#fffde7;border-color:#fdd835;color:#7a6a00}
+  .kid.no{background:#f3f4f6;border-color:#d5d9e0;color:#9aa1ad}
+  .kid .kd{width:12px;height:12px;border-radius:50%;display:inline-block;flex:0 0 12px}
+  .kd.here{background:#2eb872}.kd.no{background:#e53935}.kd.abs{background:#fdd835}.kd.out{background:#9aa1ad}
+  .room{cursor:pointer}
+  .tinfo{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}
+  .mstat{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+  .mstat span{background:#eef1f5;border-radius:999px;padding:4px 10px;font-weight:800;font-size:13px}
   .mnote{color:#5c6573;font-weight:600;margin:8px 0}
   .room.alarm{outline:4px solid #e53935;outline-offset:-2px;background-color:#fff5f5}
   .counts{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 0 4px}
@@ -309,29 +317,42 @@
   }
   // Display renames (Dave 11/12): Core's "Preppers" shows as "Prepper A".
   var LAST_ROOMS = [], LAST_FLOAT = [], LAST_LUNCH = null, OPEN_MODAL = null;
-  var KST = {here:{c:'here',l:'Here'}, out:{c:'out',l:'Signed out'}, no:{c:'no',l:'Not here'}};
+  var KST = {here:{c:'here',l:'Here'}, out:{c:'out',l:'Signed out'}, no:{c:'no',l:'Not here'}, abs:{c:'abs',l:'Absent'}};
+  var KORDER = {here:0, no:1, abs:2, out:3};
+  var LEGEND = '<div class="mnote"><span class="kd here"></span> Here · <span class="kd no"></span> Not here yet · <span class="kd abs"></span> Marked absent in Core · <span class="kd out"></span> Signed out (went home)</div>';
+  function kidChip(k){ var m = KST[k.s] || KST.here; return '<span class="kid ' + m.c + '"><span class="kd ' + m.c + '"></span>' + esc(k.n) + ' <span class="st">' + m.l + '</span></span>'; }
+  function sortRoster(r){ var ros = Array.isArray(r.roster) ? r.roster.slice() : []; ros.sort(function(a, b){ return ((KORDER[a.s] == null ? 9 : KORDER[a.s]) - (KORDER[b.s] == null ? 9 : KORDER[b.s])) || String(a.n).localeCompare(String(b.n)); }); return ros; }
+  function rosterCounts(ros){ var c = {here:0, no:0, abs:0, out:0}; ros.forEach(function(k){ if (c[k.s] != null) c[k.s]++; }); return c; }
+  function cntLine(c){ return c.here + ' here · ' + c.no + ' not here' + (c.abs ? ' · ' + c.abs + ' absent' : '') + ' · ' + c.out + ' signed out'; }
   function kidsModalHtml(){
     var any = LAST_ROOMS.some(function(r){ return Array.isArray(r.roster) && r.roster.length; });
     if (!any) return '<div class="mnote">Kid names will show here after the next attendance check.</div>';
-    var h = '<div class="mnote">✅ Here · 🏠 Signed out (went home) · ❌ Not here yet (scheduled today)</div>';
+    var h = LEGEND;
     LAST_ROOMS.forEach(function(r){
-      var ros = Array.isArray(r.roster) ? r.roster.slice() : [];
+      var ros = sortRoster(r);
       if (!ros.length) return;
-      var order = {here:0, no:1, out:2};
-      ros.sort(function(a, b){ return (order[a.s] - order[b.s]) || String(a.n).localeCompare(String(b.n)); });
-      var cnt = {here:0, no:0, out:0};
-      ros.forEach(function(k){ if (cnt[k.s] != null) cnt[k.s]++; });
-      h += '<div class="mroom"><h3>' + esc(r.name) + '<small>' + cnt.here + ' here · ' + cnt.no + ' not here · ' + cnt.out + ' signed out</small></h3>' +
-        ros.map(function(k){
-          var m = KST[k.s] || KST.here;
-          var ic = k.s === 'out' ? '🏠' : (k.s === 'no' ? '❌' : '✅');
-          return '<span class="kid ' + m.c + '">' + ic + ' ' + esc(k.n) + ' <span class="st">' + m.l + '</span></span>';
-        }).join('') + '</div>';
+      h += '<div class="mroom"><h3>' + esc(r.name) + '<small>' + cntLine(rosterCounts(ros)) + '</small></h3>' + ros.map(kidChip).join('') + '</div>';
     });
     return h;
   }
+  function roomModal(name){
+    var r = null; LAST_ROOMS.forEach(function(x){ if (x.name === name) r = x; });
+    if (!r) { closeModal(); return; }
+    $('modalTitle').textContent = '🧸 ' + r.name;
+    var t = Array.isArray(r.teachers) ? r.teachers : [];
+    var kids = Number(r.kids) || 0;
+    var ros = sortRoster(r), c = rosterCounts(ros);
+    var h = '<div class="mstat"><span>🧒 ' + kids + ' ' + (kids === 1 ? 'kid' : 'kids') + ' checked in</span><span>👩‍🏫 ' + t.length + ' ' + (t.length === 1 ? 'teacher' : 'teachers') + '</span>' +
+      (t.length ? '<span>' + (Math.round(kids / t.length * 10) / 10) + ' kids per teacher</span>' : '') +
+      '<span>🏠 ' + ((Number(r.signedOut) || 0)) + ' signed out</span>' + ((Number(r.notHere) || 0) ? '<span>' + Number(r.notHere) + ' not here</span>' : '') + '</div>';
+    if (r.alarm) h += '<div class="mnote" style="color:#c62828;font-weight:800">🚨 Needs attention: ' + esc(r.alarm) + '</div>';
+    h += '<div class="mroom"><h3>Teachers</h3>' + (t.length ? '<div class="tinfo">' + t.map(function(n){ return '<span class="chip">👩‍🏫 ' + esc(tName(n)) + '</span>'; }).join('') + '</div>' : '<div class="mnote">No teacher signed into this room on SNT right now.</div>') + '</div>';
+    h += '<div class="mroom"><h3>Kids<small>' + (ros.length ? cntLine(c) : '') + '</small></h3>' + (ros.length ? LEGEND + ros.map(kidChip).join('') : '<div class="mnote">Kid names will show here after the next attendance check.</div>') + '</div>';
+    $('modalBody').innerHTML = h;
+  }
   function openModal(kind){
     OPEN_MODAL = kind;
+    if (kind.indexOf('room:') === 0) roomModal(kind.slice(5));
     if (kind === 'kids') { $('modalTitle').textContent = '🧒 Kids by classroom'; $('modalBody').innerHTML = kidsModalHtml(); }
     if (kind === 'teachers') {
       $('modalTitle').textContent = '👩‍🏫 Teachers by classroom';
@@ -363,7 +384,9 @@
     if (t.closest && t.closest('#totFloat')) { openModal('float'); return; }
     if (t.closest && t.closest('#totT')) { openModal('teachers'); return; }
     if (t.closest && t.closest('#totLunch')) { openModal('lunch'); return; }
-    if (t.id === 'modalX' || t.id === 'modalBg') closeModal();
+    if (t.id === 'modalX' || t.id === 'modalBg') { closeModal(); return; }
+    var card = t.closest && t.closest('#rooms .room');
+    if (card && card.getAttribute('data-room')) openModal('room:' + card.getAttribute('data-room'));
   });
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeModal(); });
   function dispName(t){ return String(t == null ? '' : t).replace(/\bPreppers\b/g, 'Prepper A').replace(/School-Age Experience/g, 'School Age'); }
@@ -507,7 +530,8 @@
         cls += ' closed';
         tags += '<span class="tag closed-tag">Closed</span>';
       }
-      if (hasAlarm(r.rawName) || hasAlarm(r.name)) { cls += ' alarm'; tags = '<span class="tag alarm-tag">🚨 Needs attention</span>' + tags; }
+      r.alarm = '';
+      if (hasAlarm(r.rawName) || hasAlarm(r.name)) { r.alarm = realA.filter(function(a){ var tx = (String(a.text || '') + ' | ' + (a.bold || []).join(' | ')).toLowerCase(); var k = String(r.rawName || '').toLowerCase(); var k2 = String(r.name || '').toLowerCase(); return (k && tx.indexOf(k) !== -1) || (k2 && tx.indexOf(k2) !== -1); }).map(function(a){ return shortenNames(dispName(a.text), allT); }).join(' · '); cls += ' alarm'; tags = '<span class="tag alarm-tag">🚨 Needs attention</span>' + tags; }
       var nh = (r.notHere == null || r.notHere === '') ? 0 : (Number(r.notHere) || 0);
       if (nh > 0) tags += '<span class="badge nothere">' + nh + ' not here</span>';
       tags += '<span class="badge">' + so + ' signed out</span>';
@@ -515,7 +539,7 @@
       var chips = t.length
         ? '<div class="chips">' + t.map(function(n){ return '<span class="chip">👩‍🏫 ' + esc(tName(n)) + '</span>'; }).join('') + '</div>'
         : '';
-      rh += '<div class="' + cls + '"' + style + '>' +
+      rh += '<div class="' + cls + '"' + style + ' data-room="' + esc(r.name) + '" title="See kids and teachers">' +
             '<div class="room-top"><h3>' + esc(r.name) + '</h3><div class="tags">' + tags + '</div></div>' +
             '<div class="counts"><div class="kids"><span class="n">' + kids + '</span><span class="w">' + (kids === 1 ? 'kid' : 'kids') + '</span></div>' +
             '<div class="tcount">' + tLabel + '</div></div>' + chips + '</div>';
