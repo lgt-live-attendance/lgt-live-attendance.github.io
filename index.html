@@ -125,7 +125,7 @@
   .kid.no{background:#f3f4f6;border-color:#d5d9e0;color:#9aa1ad}
   .kid .kd{width:12px;height:12px;border-radius:50%;display:inline-block;flex:0 0 12px}
   .kd.here{background:#2eb872}.kd.no{background:#e53935}.kd.abs{background:#fdd835}.kd.out{background:#9aa1ad}
-  .room{cursor:pointer}
+  .room{cursor:pointer} .lv{color:#6b7380;font-weight:600;font-size:.85em}
   .tinfo{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}
   .mstat{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
   .mstat span{background:#eef1f5;border-radius:999px;padding:4px 10px;font-weight:800;font-size:13px}
@@ -297,6 +297,8 @@
     var o = NAME_OVERRIDES[f.toLowerCase()];
     return o || f.split(/\s+/)[0];
   }
+  // Scheduled leave time from Core (Dave 11/12), from snapshot.leave {"Full Name":"5:30 PM"}.
+  function lv(full){ var v = LAST_LEAVE[String(full || '').trim().toLowerCase()]; return v ? ' <span class="lv">· leaves ' + esc(v) + '</span>' : ''; }
   function shortenNames(text, fulls){
     var out = String(text || '');
     (fulls || []).slice().sort(function(a,b){ return b.length - a.length; }).forEach(function(n){
@@ -314,7 +316,7 @@
     return safe.replace(re, '<b>$1</b>');
   }
   // Display renames (Dave 11/12): Core's "Preppers" shows as "Prepper A".
-  var LAST_ROOMS = [], LAST_FLOAT = [], LAST_LUNCH = null, LAST_EXTRA = [], OPEN_MODAL = null;
+  var LAST_ROOMS = [], LAST_FLOAT = [], LAST_LUNCH = null, LAST_EXTRA = [], LAST_LEAVE = {}, OPEN_MODAL = null;
   var KST = {here:{c:'here',l:'Here'}, out:{c:'out',l:'Signed out'}, no:{c:'no',l:'Not here'}, abs:{c:'abs',l:'Absent'}};
   var KORDER = {here:0, no:1, abs:2, out:3};
   var LEGEND = '<div class="mnote"><span class="kd here"></span> Here · <span class="kd no"></span> Not here yet · <span class="kd abs"></span> Marked absent in Core · <span class="kd out"></span> Signed out (went home)</div>';
@@ -344,13 +346,13 @@
       (t.length ? '<span>' + (Math.round(kids / t.length * 10) / 10) + ' kids per teacher</span>' : '') +
       '<span>🏠 ' + ((Number(r.signedOut) || 0)) + ' signed out</span>' + ((Number(r.notHere) || 0) ? '<span>' + Number(r.notHere) + ' not here</span>' : '') + '</div>';
     if (r.alarm) h += '<div class="mnote" style="color:#c62828;font-weight:800">🚨 Needs attention: ' + esc(r.alarm) + '</div>';
-    h += '<div class="mroom"><h3>Teachers</h3>' + (t.length ? '<div class="tinfo">' + t.map(function(n){ return '<span class="chip">👩‍🏫 ' + esc(tName(n)) + '</span>'; }).join('') + '</div>' : '<div class="mnote">No teacher signed into this room on SNT right now.</div>') + '</div>';
+    h += '<div class="mroom"><h3>Teachers</h3>' + (t.length ? '<div class="tinfo">' + t.map(function(n){ return '<span class="chip">👩‍🏫 ' + esc(tName(n)) + lv(n) + '</span>'; }).join('') + '</div>' : '<div class="mnote">No teacher signed into this room on SNT right now.</div>') + '</div>';
     h += '<div class="mroom"><h3>Kids<small>' + (ros.length ? cntLine(c) : '') + '</small></h3>' + (ros.length ? LEGEND + ros.map(kidChip).join('') : '<div class="mnote">Kid names will show here after the next attendance check.</div>') + '</div>';
     $('modalBody').innerHTML = h;
   }
   function nameTable(arr, icon){
-    var l = arr.map(function(n){ return tName(n); }).sort(function(a, b){ return a.localeCompare(b); });
-    return '<table style="width:100%;border-collapse:collapse;font-size:15px">' + l.map(function(n){ return '<tr><td style="padding:6px 4px;border-top:1px solid #eef1f5;font-weight:800">' + icon + ' ' + esc(n) + '</td></tr>'; }).join('') + '</table>';
+    var l = arr.slice().sort(function(a, b){ return tName(a).localeCompare(tName(b)); });
+    return '<table style="width:100%;border-collapse:collapse;font-size:15px">' + l.map(function(n){ return '<tr><td style="padding:6px 4px;border-top:1px solid #eef1f5;font-weight:800">' + icon + ' ' + esc(tName(n)) + lv(n) + '</td></tr>'; }).join('') + '</table>';
   }
   function openModal(kind){
     OPEN_MODAL = kind;
@@ -359,10 +361,10 @@
     if (kind === 'teachers') {
       $('modalTitle').textContent = '👩‍🏫 Teachers in classrooms';
       var list = [];
-      LAST_ROOMS.forEach(function(r){ (Array.isArray(r.teachers) ? r.teachers : []).forEach(function(n){ if (n) list.push({n:tName(n), w:r.name, c:''}); }); });
+      LAST_ROOMS.forEach(function(r){ (Array.isArray(r.teachers) ? r.teachers : []).forEach(function(n){ if (n) list.push({n:tName(n), f:n, w:r.name, c:''}); }); });
       list.sort(function(x, y){ return x.n.localeCompare(y.n) || x.w.localeCompare(y.w); });
       $('modalBody').innerHTML = list.length ? '<div class="mnote">' + list.length + ' in classrooms, A to Z</div><table style="width:100%;border-collapse:collapse;font-size:15px">' +
-        list.map(function(x){ return '<tr' + x.c + '><td style="padding:6px 4px;border-top:1px solid #eef1f5;font-weight:800">👩‍🏫 ' + esc(x.n) + '</td><td style="padding:6px 4px;border-top:1px solid #eef1f5;text-align:right;color:#5c6573;font-weight:700">' + esc(x.w) + '</td></tr>'; }).join('') + '</table>'
+        list.map(function(x){ return '<tr' + x.c + '><td style="padding:6px 4px;border-top:1px solid #eef1f5;font-weight:800">👩‍🏫 ' + esc(x.n) + lv(x.f) + '</td><td style="padding:6px 4px;border-top:1px solid #eef1f5;text-align:right;color:#5c6573;font-weight:700">' + esc(x.w) + '</td></tr>'; }).join('') + '</table>'
         : '<div class="mnote">No teachers signed into classrooms right now.</div>';
     }
     if (kind === 'lunch') {
@@ -378,7 +380,7 @@
         (LAST_EXTRA.length ? LAST_EXTRA.map(function(x){
           var names = x.t.map(function(n){ return tName(n); }).sort(function(a, b){ return a.localeCompare(b); });
           return '<div style="margin-top:10px"><div style="font-weight:800">' + esc(x.room) + ' <span style="color:#5c6573;font-weight:700;font-size:13px">' + (x.empty ? 'no kids, ' + x.nt + ' ' + (x.nt === 1 ? 'teacher' : 'teachers') + ' (all can step out)' : x.kids + ' kids, ' + x.nt + ' teachers') + '</span></div>' +
-            (names.length ? nameTable(names, '👩‍🏫') : '<div class="mnote">Teacher names will show after the next check.</div>') + '</div>';
+            (x.t.length ? nameTable(x.t, '👩‍🏫') : '<div class="mnote">Teacher names will show after the next check.</div>') + '</div>';
         }).join('') : '<div class="mnote">No rooms have extra teachers right now.</div>') + '</div>';
       $('modalBody').innerHTML = fh + eh;
     }
@@ -418,6 +420,7 @@
   function render(data){
     lastData = data;
     var snap = (data && data.snapshot) || null;
+    LAST_LEAVE = {}; if (snap && snap.leave && typeof snap.leave === 'object') { for (var lk in snap.leave) { if (snap.leave[lk]) LAST_LEAVE[String(lk).trim().toLowerCase()] = String(snap.leave[lk]); } }
     var updIso = data && data.updatedIso;
     var upd = updIso ? new Date(updIso) : null;
     if (upd && isNaN(upd.getTime())) upd = null;
@@ -545,7 +548,7 @@
       tags += '<span class="badge">' + so + ' signed out</span>';
       var tLabel = t.length + ' ' + (t.length === 1 ? 'teacher' : 'teachers');
       var chips = t.length
-        ? '<div class="chips">' + t.map(function(n){ return '<span class="chip">👩‍🏫 ' + esc(tName(n)) + '</span>'; }).join('') + '</div>'
+        ? '<div class="chips">' + t.map(function(n){ return '<span class="chip">👩‍🏫 ' + esc(tName(n)) + lv(n) + '</span>'; }).join('') + '</div>'
         : '';
       rh += '<div class="' + cls + '"' + style + ' data-room="' + esc(r.name) + '" title="See kids and teachers">' +
             '<div class="room-top"><h3>' + esc(r.name) + '</h3><div class="tags">' + tags + '</div></div>' +
