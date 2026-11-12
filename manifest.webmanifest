@@ -1,0 +1,9 @@
+{
+  "name": "LGT Live Attendance",
+  "short_name": "LGT Live",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#fff7e6",
+  "theme_color": "#2eb872",
+  "icons": []
+}

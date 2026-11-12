@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LGT Live Attendance</title>
+<script>
+  // ===== CONFIG: paste the Apps Script web app URL (ends in /exec) =====
+  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzLiSbs1MQFvoVBdsNXTZXZPJSqwBB9GPf955_IuKV9d2U4QG4Yv4se2DdxhQZg1JwJ/exec';
+</script>
+<meta name="theme-color" content="#2eb872">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="LGT Live">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%AB%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg1:#fff7e6; --bg2:#e8f6ff; --ink:#22304a; --muted:#5b6b85;
+    --card:#ffffff; --shadow:0 6px 18px rgba(34,48,74,.10);
+    --red:#e53935; --amber:#ffb300; --purple:#8e44ad; --blue:#1e88e5; --green:#2eb872;
+    --radius:20px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"Nunito","Segoe UI Rounded","Trebuchet MS","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(circle at 8% 12%, rgba(255,179,0,.18) 0 90px, transparent 91px),
+      radial-gradient(circle at 92% 18%, rgba(30,136,229,.14) 0 120px, transparent 121px),
+      radial-gradient(circle at 85% 92%, rgba(46,184,114,.14) 0 110px, transparent 111px),
+      radial-gradient(circle at 12% 88%, rgba(142,68,173,.12) 0 80px, transparent 81px),
+      linear-gradient(160deg,var(--bg1),var(--bg2));
+    background-attachment:fixed;
+    min-height:100vh;
+  }
+  .wrap{max-width:1400px;margin:0 auto;padding:18px 18px 40px}
+  /* Header */
+  header{
+    background:linear-gradient(90deg,#ff7a59,#ffb300 35%,#2eb872 65%,#1e88e5);
+    color:#fff;border-radius:var(--radius);padding:16px 22px;box-shadow:var(--shadow);
+    display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;
+  }
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{font-size:38px;line-height:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.15))}
+  h1{margin:0;font-size:clamp(20px,2.6vw,32px);font-weight:900;letter-spacing:.3px;text-shadow:0 2px 0 rgba(0,0,0,.12)}
+  .sub{font-size:14px;opacity:.95;font-weight:700}
+  .clockbox{text-align:right}
+  .clock{font-size:clamp(26px,3.4vw,44px);font-weight:900;font-variant-numeric:tabular-nums;text-shadow:0 2px 0 rgba(0,0,0,.12)}
+  .status{display:flex;align-items:center;justify-content:flex-end;gap:8px;font-weight:800;font-size:15px}
+  .dot{width:14px;height:14px;border-radius:50%;background:#7CFC9A;box-shadow:0 0 0 0 rgba(124,252,154,.8);animation:pulse 1.6s infinite}
+  .dot.stale{background:var(--amber);box-shadow:0 0 0 0 rgba(255,179,0,.8);animation:pulseA 1.6s infinite}
+  .dot.err{background:#ff5252;animation:none}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(124,252,154,.85)}70%{box-shadow:0 0 0 12px rgba(124,252,154,0)}100%{box-shadow:0 0 0 0 rgba(124,252,154,0)}}
+  @keyframes pulseA{0%{box-shadow:0 0 0 0 rgba(255,179,0,.85)}70%{box-shadow:0 0 0 12px rgba(255,179,0,0)}100%{box-shadow:0 0 0 0 rgba(255,179,0,0)}}
+  /* Controls */
+  .controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 2px}
+  button{
+    font:inherit;font-weight:900;border:0;border-radius:999px;padding:10px 18px;cursor:pointer;
+    box-shadow:0 4px 0 rgba(0,0,0,.15);transition:transform .08s;
+  }
+  button:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.15)}
+  #enableBtn{background:var(--green);color:#fff;font-size:16px}
+  #testBtn{background:#fff;color:var(--ink)}
+  .perm{background:#fff;border-radius:999px;padding:8px 14px;font-weight:800;font-size:14px;box-shadow:var(--shadow)}
+  .note{background:#fff3cd;color:#7a5200;border:2px dashed var(--amber);border-radius:14px;padding:8px 14px;font-weight:800;font-size:14px;display:none}
+  .note.show{display:block}
+  h2{font-size:clamp(18px,2vw,24px);margin:22px 4px 10px;font-weight:900}
+  /* Alerts */
+  .alerts{display:grid;gap:10px}
+  .alert{
+    display:flex;align-items:flex-start;gap:14px;border-radius:16px;padding:14px 18px;
+    background:#fff;box-shadow:var(--shadow);border-left:10px solid var(--blue);
+    font-size:clamp(16px,1.6vw,20px);line-height:1.35;animation:pop .35s ease-out;
+  }
+  .alert .ic{font-size:28px;line-height:1}
+  .alert .lbl{display:block;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:900;opacity:.75;margin-bottom:2px}
+  .alert b{font-weight:900}
+  .alert.combine{border-color:var(--red);background:#fff0f0}
+  .alert.empty,.alert.idle{border-color:var(--amber);background:#fff8e6}
+  .alert.alone{border-color:var(--purple);background:#f7efff}
+  .alert.extra{border-color:var(--blue);background:#eef6ff}
+  .alert.over{border-color:var(--red);background:#ffe3e3;animation:pop .35s ease-out, flash 1s infinite}
+  .alert.isnew{outline:4px solid rgba(229,57,53,.35)}
+  @keyframes flash{0%,100%{background:#ffe3e3}50%{background:#ff8a80}}
+  @keyframes pop{0%{transform:scale(.96);opacity:0}100%{transform:scale(1);opacity:1}}
+  .allgood{
+    background:linear-gradient(90deg,#dfffe9,#e8fff4);border:3px solid var(--green);color:#16794a;
+    border-radius:18px;padding:18px;font-size:clamp(20px,2.4vw,30px);font-weight:900;text-align:center;box-shadow:var(--shadow)
+  }
+  /* Rooms */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+  .room{
+    background:var(--card);border-radius:var(--radius);padding:16px 18px 18px;box-shadow:var(--shadow);
+    border-top:10px solid var(--c,#1e88e5);position:relative;animation:pop .35s ease-out
+  }
+  .room h3{margin:0 0 4px;font-size:clamp(18px,1.7vw,22px);font-weight:900}
+  .kids{display:flex;align-items:baseline;gap:8px;margin:4px 0 10px}
+  .kids .n{font-size:clamp(48px,5vw,68px);font-weight:900;line-height:1;color:var(--c,#1e88e5)}
+  .kids .w{font-size:18px;font-weight:800;color:var(--muted)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{background:#f1f4fa;border-radius:999px;padding:6px 12px;font-weight:800;font-size:14px}
+  .chip.none{background:#ffe3e3;color:#b71c1c}
+  .badge{position:absolute;top:14px;right:14px;background:#f1f4fa;color:var(--muted);border-radius:999px;padding:5px 11px;font-weight:900;font-size:13px}
+  /* Quiet state */
+  .quiet{
+    text-align:center;background:#fff;border-radius:28px;box-shadow:var(--shadow);padding:46px 20px;margin-top:22px
+  }
+  .quiet .big{font-size:64px}
+  .quiet .t{font-size:clamp(22px,3vw,34px);font-weight:900;margin:10px 0 6px}
+  .quiet .s{color:var(--muted);font-weight:700}
+  .hidden{display:none !important}
+  footer{margin-top:26px;text-align:center;color:var(--muted);font-size:13px;font-weight:700}
+  @media (max-width:600px){
+    .wrap{padding:10px 10px 30px}
+    header{padding:14px}
+    .clockbox{text-align:left;width:100%}
+    .status{justify-content:flex-start}
+    .grid{grid-template-columns:1fr 1fr;gap:10px}
+    .room{padding:12px}
+    .badge{position:static;display:inline-block;margin-bottom:6px}
+  }
+  @media (max-width:380px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo">🏫</div>
+      <div>
+        <h1>Lake Georgetown TLE · Live Attendance</h1>
+        <div class="sub">Afternoon classroom checks · auto-updates every 30 seconds</div>
+      </div>
+    </div>
+    <div class="clockbox">
+      <div class="clock" id="clock">--:--</div>
+      <div class="status"><span class="dot" id="dot"></span><span id="updated">Loading…</span></div>
+    </div>
+  </header>
+
+  <div class="controls">
+    <button id="enableBtn" type="button">Enable alerts 🔔</button>
+    <button id="testBtn" type="button">Test alert</button>
+    <span class="perm" id="perm">Pop-ups: checking…</span>
+    <span class="note" id="note"></span>
+  </div>
+
+  <section id="quiet" class="quiet hidden">
+    <div class="big">🌙</div>
+    <div class="t">Checks run 3:00–6:30 PM on school days</div>
+    <div class="s" id="quietSub">No live data right now. This page will wake up on its own.</div>
+  </section>
+
+  <section id="live">
+    <h2>🚨 Alerts</h2>
+    <div class="alerts" id="alerts"></div>
+    <h2>🧸 Classrooms</h2>
+    <div class="grid" id="rooms"></div>
+  </section>
+
+  <footer id="foot">LGT Live Attendance</footer>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var TZ = 'America/Chicago';
+  var POLL_MS = 30000;
+  var STALE_MIN = 10;
+  var COLORS = ['#ff7a59','#1e88e5','#2eb872','#8e44ad','#ffb300','#00acc1','#e91e63','#5c6bc0'];
+  var META = {
+    combine:{ic:'🔴',lbl:'Combine'},
+    empty:{ic:'🟠',lbl:'Empty room'},
+    idle:{ic:'🟠',lbl:'Idle teacher'},
+    alone:{ic:'🟣',lbl:'Alone'},
+    extra:{ic:'🔵',lbl:'Extra teachers'},
+    over:{ic:'🚨',lbl:'Over ratio'}
+  };
+  var lastData = null, fetchFailed = false, audioCtx = null, flashTimer = null;
+  var baseTitle = document.title;
+  var prevKeys = null;
+
+  // Data source: the Apps Script web app's ?format=json endpoint
+  function fetchSnapshot(ok, fail){
+    if (!WEB_APP_URL || WEB_APP_URL.indexOf('PASTE_') !== -1) { fail(new Error('WEB_APP_URL not set')); return; }
+    var url = WEB_APP_URL + (WEB_APP_URL.indexOf('?') === -1 ? '?' : '&') + 'format=json&t=' + Date.now();
+    fetch(url, {cache:'no-store', redirect:'follow'})
+      .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(j){ if (j && j.error) throw new Error(j.error); ok(j); })
+      .catch(fail);
+  }
+  // Optional service worker (needed for pop-ups on Android Chrome; harmless if sw.js is absent)
+  var swReg = null;
+  try {
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+      navigator.serviceWorker.register('sw.js').then(function(r){ swReg = r; }).catch(function(){});
+    }
+  } catch(e){}
+  function showViaServiceWorker(body){
+    if (!swReg || !swReg.showNotification) return false;
+    try {
+      swReg.showNotification('LGT Alert 🚨', {body: body, requireInteraction: true, tag: 'lgt-' + Date.now()}).catch(function(){});
+      return true;
+    } catch(e){ return false; }
+  }
+
+  function $(id){ return document.getElementById(id); }
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  function reEsc(s){ return s.replace(/[.*+?^$(){}|[\]\\]/g, '\\$&'); }
+
+  // Chicago-local parts for "now"
+  function chiParts(d){
+    var f = new Intl.DateTimeFormat('en-US',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,weekday:'short'});
+    var o = {};
+    f.formatToParts(d).forEach(function(p){ o[p.type] = p.value; });
+    var h = parseInt(o.hour,10); if (h === 24) h = 0;
+    return {date:o.year+'-'+o.month+'-'+o.day, h:h, m:parseInt(o.minute,10), wd:o.weekday};
+  }
+  function fmtTime(d){
+    return new Intl.DateTimeFormat('en-US',{timeZone:TZ,hour:'numeric',minute:'2-digit'}).format(d);
+  }
+  function inWindow(p){
+    var mins = p.h*60 + p.m;
+    return mins >= 15*60 && mins <= 18*60+35; // 3:00 PM – 6:30 PM (+5 min grace for the 6:30 check)
+  }
+
+  function boldify(text, names){
+    var safe = esc(text);
+    var list = (names || []).filter(function(n){ return n && String(n).trim(); })
+      .map(function(n){ return esc(String(n)); })
+      .sort(function(a,b){ return b.length - a.length; });
+    if (!list.length) return safe;
+    var re = new RegExp('(' + list.map(reEsc).join('|') + ')', 'g');
+    return safe.replace(re, '<b>$1</b>');
+  }
+  function alertKey(a){ return String(a.type || '') + '|' + String(a.text || ''); }
+
+  // ---------- seen-alerts memory (survives reloads, per day) ----------
+  function storeKey(){ return 'lgtSeenAlerts-' + chiParts(new Date()).date; }
+  function loadSeen(){
+    try { var v = localStorage.getItem(storeKey()); return v ? JSON.parse(v) : null; } catch(e){ return null; }
+  }
+  function saveSeen(keys){
+    try {
+      localStorage.setItem(storeKey(), JSON.stringify(keys));
+      for (var i = localStorage.length - 1; i >= 0; i--) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf('lgtSeenAlerts-') === 0 && k !== storeKey()) localStorage.removeItem(k);
+      }
+    } catch(e){}
+  }
+
+  // ---------- rendering ----------
+  function render(data){
+    lastData = data;
+    var snap = (data && data.snapshot) || null;
+    var updIso = data && data.updatedIso;
+    var upd = updIso ? new Date(updIso) : null;
+    if (upd && isNaN(upd.getTime())) upd = null;
+    var now = new Date();
+    var pNow = chiParts(now);
+    var today = upd && chiParts(upd).date === pNow.date;
+    var quiet = !snap || !upd || !today || !inWindow(pNow);
+
+    updateStatus();
+
+    $('quiet').classList.toggle('hidden', !quiet);
+    $('live').classList.toggle('hidden', quiet);
+    if (quiet) {
+      $('quietSub').textContent = upd
+        ? 'Last check: ' + fmtTime(upd) + (today ? ' today' : ' on ' + new Intl.DateTimeFormat('en-US',{timeZone:TZ,weekday:'short',month:'short',day:'numeric'}).format(upd)) + '. This page wakes up on its own.'
+        : 'No live data right now. This page wakes up on its own.';
+      return;
+    }
+
+    var alerts = Array.isArray(snap.alerts) ? snap.alerts : [];
+    var keys = alerts.map(alertKey);
+
+    // New-alert detection vs previous poll + localStorage
+    var seen = prevKeys || loadSeen() || [];
+    var fresh = alerts.filter(function(a){ return seen.indexOf(alertKey(a)) === -1; });
+    prevKeys = keys;
+    saveSeen(keys);
+
+    var ah = '';
+    if (!alerts.length) {
+      ah = '<div class="allgood">No alerts right now ✅ 🎉</div>';
+    } else {
+      alerts.forEach(function(a){
+        var t = META[a.type] ? a.type : 'extra';
+        var m = META[t];
+        var isNew = fresh.indexOf(a) !== -1;
+        ah += '<div class="alert ' + t + (isNew ? ' isnew' : '') + '"><div class="ic">' + m.ic + '</div><div><span class="lbl">' + esc(m.lbl) + (isNew ? ' · NEW' : '') + '</span>' + boldify(a.text, a.bold) + '</div></div>';
+      });
+    }
+    $('alerts').innerHTML = ah;
+
+    var rooms = (Array.isArray(snap.rooms) ? snap.rooms : []).slice()
+      .filter(function(r){ return Number(r.kids) > 0; })
+      .sort(function(a,b){ return (Number(b.kids)||0) - (Number(a.kids)||0) || String(a.name).localeCompare(String(b.name)); });
+    var rh = '';
+    rooms.forEach(function(r, i){
+      var kids = Number(r.kids) || 0;
+      var t = Array.isArray(r.teachers) ? r.teachers : [];
+      var chips = t.length ? t.map(function(n){ return '<span class="chip">👩‍🏫 ' + esc(n) + '</span>'; }).join('') : '<span class="chip none">No teacher listed</span>';
+      var so = (r.signedOut != null && r.signedOut !== '') ? '<span class="badge">' + esc(r.signedOut) + ' signed out</span>' : '';
+      rh += '<div class="room" style="--c:' + COLORS[i % COLORS.length] + '">' + so +
+            '<h3>' + esc(r.name) + '</h3>' +
+            '<div class="kids"><span class="n">' + kids + '</span><span class="w">' + (kids === 1 ? 'kid' : 'kids') + '</span></div>' +
+            '<div class="chips">' + chips + '</div></div>';
+    });
+    $('rooms').innerHTML = rh || '<div class="allgood" style="grid-column:1/-1">All classrooms are empty 🎈</div>';
+
+    if (fresh.length) fireAlerts(fresh);
+  }
+
+  function updateStatus(){
+    var upd = lastData && lastData.updatedIso ? new Date(lastData.updatedIso) : null;
+    var dot = $('dot');
+    dot.classList.remove('stale','err');
+    if (fetchFailed) { dot.classList.add('err'); }
+    if (!upd || isNaN(upd.getTime())) {
+      $('updated').textContent = fetchFailed ? 'Can’t reach data — retrying' : 'Waiting for first check…';
+      if (!fetchFailed) dot.classList.add('stale');
+      return;
+    }
+    var mins = Math.max(0, Math.floor((Date.now() - upd.getTime()) / 60000));
+    var label = (lastData.snapshot && lastData.snapshot.updated) || fmtTime(upd);
+    $('updated').textContent = 'Last updated ' + label + ' (' + (mins === 0 ? 'just now' : mins < 60 ? mins + ' min ago' : mins < 1440 ? Math.floor(mins/60) + ' hr ago' : Math.floor(mins/1440) + ' day' + (mins >= 2880 ? 's' : '') + ' ago') + ')' + (fetchFailed ? ' · reconnecting…' : '');
+    if (!fetchFailed && mins > STALE_MIN) dot.classList.add('stale');
+  }
+
+  // ---------- notifications / sound / title ----------
+  function showNote(msg){ var n = $('note'); n.textContent = msg; n.classList.add('show'); }
+  function permStatus(){
+    var s;
+    if (!('Notification' in window)) s = 'unavailable';
+    else s = Notification.permission; // default | granted | denied
+    var map = {granted:'Pop-ups: ON ✅', denied:'Pop-ups: blocked ⛔', 'default':'Pop-ups: not enabled yet', unavailable:'Pop-ups: unavailable here'};
+    $('perm').textContent = map[s] || ('Pop-ups: ' + s);
+    if (s === 'denied' || s === 'unavailable') showNote('Pop-ups blocked in this frame' + (window.top !== window.self ? ' (page is inside an embedded frame)' : '') + '. Chime and tab flashing still work.');
+    return s;
+  }
+
+  function unlockAudio(){
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!audioCtx) audioCtx = new AC();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    } catch(e){}
+  }
+  function chime(){
+    try {
+      unlockAudio();
+      if (!audioCtx) return;
+      var t0 = audioCtx.currentTime + 0.02;
+      [[880,0],[1175,0.18],[1568,0.36]].forEach(function(n){
+        var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = 'sine'; o.frequency.value = n[0];
+        g.gain.setValueAtTime(0.0001, t0 + n[1]);
+        g.gain.exponentialRampToValueAtTime(0.35, t0 + n[1] + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + n[1] + 0.45);
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(t0 + n[1]); o.stop(t0 + n[1] + 0.5);
+      });
+    } catch(e){}
+  }
+  function flashTitle(count){
+    stopFlash();
+    var on = false;
+    flashTimer = setInterval(function(){
+      on = !on;
+      document.title = on ? ('🚨 ' + count + ' new alert' + (count === 1 ? '' : 's') + '!') : baseTitle;
+    }, 1000);
+  }
+  function stopFlash(){ if (flashTimer) { clearInterval(flashTimer); flashTimer = null; } document.title = baseTitle; }
+  window.addEventListener('focus', stopFlash);
+  document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible' && document.hasFocus()) stopFlash(); });
+
+  function plain(a){ return String(a.text || ''); }
+  function notify(body){
+    try {
+      if (!('Notification' in window)) { showNote('Pop-ups blocked in this frame (Notification API unavailable).'); return false; }
+      if (Notification.permission !== 'granted') { if (Notification.permission === 'denied') showNote('Pop-ups blocked in this frame (permission denied).'); return false; }
+      if (typeof showViaServiceWorker === 'function' && showViaServiceWorker(body)) return true;
+      var n = new Notification('LGT Alert 🚨', {body: body, requireInteraction: true, tag: 'lgt-' + Date.now()});
+      n.onclick = function(){ try { window.focus(); n.close(); } catch(e){} };
+      return true;
+    } catch(e) {
+      showNote('Pop-ups blocked in this frame (' + (e && e.message ? e.message : 'error') + ').');
+      return false;
+    }
+  }
+  function fireAlerts(list){
+    list.forEach(function(a){ notify(plain(a)); });
+    chime();
+    if (!document.hasFocus()) flashTitle(list.length);
+  }
+
+  $('enableBtn').addEventListener('click', function(){
+    unlockAudio();
+    chime();
+    try {
+      if (!('Notification' in window)) { permStatus(); return; }
+      var p = Notification.requestPermission(function(){ permStatus(); });
+      if (p && typeof p.then === 'function') p.then(function(){ permStatus(); }, function(){ permStatus(); showNote('Pop-ups blocked in this frame.'); });
+    } catch(e) {
+      showNote('Pop-ups blocked in this frame (' + (e && e.message ? e.message : 'error') + ').');
+    }
+    $('enableBtn').textContent = 'Alerts enabled 🔔 (sound on)';
+  });
+  $('testBtn').addEventListener('click', function(){
+    unlockAudio();
+    var ok = notify('Test alert: this is what a new LGT alert looks like.');
+    chime();
+    flashTitle(1);
+    setTimeout(stopFlash, 6000);
+    if (!ok && ('Notification' in window) && Notification.permission === 'default') showNote('Click “Enable alerts 🔔” first, then test again.');
+  });
+
+  // ---------- clock + polling ----------
+  function tick(){
+    $('clock').textContent = new Intl.DateTimeFormat('en-US',{timeZone:TZ,hour:'numeric',minute:'2-digit',second:'2-digit'}).format(new Date());
+  }
+  function poll(){
+    fetchSnapshot(function(data){
+      fetchFailed = false;
+      render(data);
+    }, function(err){
+      fetchFailed = true;
+      updateStatus();
+      if (lastData) render(lastData);
+    });
+  }
+
+  tick(); setInterval(tick, 1000);
+  setInterval(updateStatus, 15000);
+  permStatus();
+  poll(); setInterval(poll, POLL_MS);
+  // Re-evaluate quiet window every minute even when data is unchanged
+  setInterval(function(){ if (lastData) render(lastData); }, 60000);
+})();
+</script>
+</body>
+</html>
