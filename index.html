@@ -432,7 +432,8 @@
     });
     var nT = Object.keys(totT).length;
     $('totals').innerHTML = '<span class="tot">🧒 <b>' + totKids + '</b>' + (totKids === 1 ? 'kid' : 'kids') + ' checked in</span>' +
-      '<span class="tot">👩‍🏫 <b>' + nT + '</b>' + (nT === 1 ? 'teacher' : 'teachers') + ' in classrooms</span>';
+      '<span class="tot">👩‍🏫 <b>' + nT + '</b>' + (nT === 1 ? 'teacher' : 'teachers') + ' in classrooms</span>' +
+      ((snap.onLunch == null || snap.onLunch === '') ? '' : '<span class="tot">🥪 <b>' + (Number(snap.onLunch) || 0) + '</b>on lunch</span>');
     $('rooms').innerHTML = rh || '<div class="allgood" style="grid-column:1/-1">No classroom data yet 🎈</div>';
 
     if (fresh.length) fireAlerts(fresh);
