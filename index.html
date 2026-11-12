@@ -105,6 +105,7 @@
   .tag.attention{background:#fff3cd;color:#7a5200;white-space:normal}
   .tag.closed-tag{background:#d9dee6;color:#5c6573}
   .tag.alarm-tag{background:#e53935;color:#fff}
+  .tag.combined-tag{background:#e8eaf6;color:#303f9f;border:1px solid #c5cae9;white-space:normal}
   .tot.click{cursor:pointer;border-color:#1e88e5;box-shadow:0 2px 0 #1e88e5}
   .tot.click:hover{background:#e3f2fd}
   .tot .more{font-size:11px;font-weight:700;color:#1e88e5;margin-left:6px}
@@ -346,6 +347,7 @@
     var h = '<div class="mstat"><span>🧒 ' + kids + ' ' + (kids === 1 ? 'kid' : 'kids') + ' checked in</span><span>👩‍🏫 ' + t.length + ' ' + (t.length === 1 ? 'teacher' : 'teachers') + '</span>' +
       (t.length ? '<span>' + (Math.round(kids / t.length * 10) / 10) + ' kids per teacher</span>' : '') +
       '<span>🏠 ' + ((Number(r.signedOut) || 0)) + ' signed out</span>' + ((Number(r.notHere) || 0) ? '<span>' + Number(r.notHere) + ' not here</span>' : '') + '</div>';
+    if (combinedTag(r)) h += '<div class="mnote">' + combinedTag(r) + '</div>';
     if (r.alarm) h += '<div class="mnote" style="color:#c62828;font-weight:800">🚨 Needs attention: ' + esc(r.alarm) + '</div>';
     h += '<div class="mroom"><h3>Teachers</h3>' + (t.length ? '<div class="tinfo">' + t.map(function(n){ return '<span class="chip">👩‍🏫 ' + esc(tName(n)) + lv(n) + '</span>'; }).join('') + '</div>' : '<div class="mnote">No teacher signed into this room on SNT right now.</div>') + '</div>';
     h += '<div class="mroom"><h3>Kids<small>' + (ros.length ? cntLine(c) : '') + '</small></h3>' + (ros.length ? LEGEND + ros.map(kidChip).join('') : '<div class="mnote">Kid names will show here after the next attendance check.</div>') + '</div>';
@@ -399,6 +401,11 @@
     if (card && card.getAttribute('data-room')) openModal('room:' + card.getAttribute('data-room'));
   });
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeModal(); });
+  function combinedTag(r){
+    var cf = r && Array.isArray(r.combinedFrom) ? r.combinedFrom : [];
+    if (!cf.length) return '';
+    return '<span class="tag combined-tag">🔗 Combined: ' + esc([r.name].concat(cf.map(dispName)).join(' + ')) + '</span>';
+  }
   function dispName(t){ return String(t == null ? '' : t).replace(/\bPreppers\b/g, 'Prepper A').replace(/School-Age Experience/g, 'School Age'); }
   function alertKey(a){ return String(a.type || '') + '|' + String(a.text || ''); }
 
@@ -557,6 +564,7 @@
       }
       r.alarm = '';
       if (hasAlarm(r.rawName) || hasAlarm(r.name)) { r.alarm = realA.filter(function(a){ var tx = (String(a.text || '') + ' | ' + (a.bold || []).join(' | ')).toLowerCase(); var k = String(r.rawName || '').toLowerCase(); var k2 = String(r.name || '').toLowerCase(); return (k && tx.indexOf(k) !== -1) || (k2 && tx.indexOf(k2) !== -1); }).map(function(a){ return shortenNames(dispName(a.text), allT); }).join(' · '); cls += ' alarm'; tags = '<span class="tag alarm-tag">🚨 Needs attention</span>' + tags; }
+      tags += combinedTag(r);
       var nh = (r.notHere == null || r.notHere === '') ? 0 : (Number(r.notHere) || 0);
       if (nh > 0) tags += '<span class="badge nothere">' + nh + ' not here</span>';
       tags += '<span class="badge">' + so + ' signed out</span>';
