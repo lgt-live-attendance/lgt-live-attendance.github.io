@@ -91,6 +91,9 @@
   }
   /* Rooms — compact so ~13 cards fit on a laptop without much scrolling */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(186px,1fr));gap:8px}
+  .totals{display:flex;flex-wrap:wrap;gap:8px;margin:-4px 0 10px}
+  .totals .tot{background:#fff;border:2px solid #e4e7ec;border-radius:999px;padding:6px 14px;font-weight:800;font-size:15px}
+  .totals .tot b{font-size:18px;font-weight:900;margin-right:4px}
   .room{
     background:var(--card);border-radius:14px;padding:8px 10px 10px;box-shadow:var(--shadow);
     border-top:6px solid var(--c,#1e88e5);animation:pop .35s ease-out
@@ -181,6 +184,7 @@
     <h2>🚨 Alerts</h2>
     <div class="alerts" id="alerts"></div>
     <h2>🧸 Classrooms</h2>
+    <div class="totals" id="totals"></div>
     <div class="grid" id="rooms"></div>
   </section>
 
@@ -395,6 +399,14 @@
             '<div class="counts"><div class="kids"><span class="n">' + kids + '</span><span class="w">' + (kids === 1 ? 'kid' : 'kids') + '</span></div>' +
             '<div class="tcount">' + tLabel + '</div></div>' + chips + '</div>';
     });
+    var totKids = 0, totT = {};
+    rooms.forEach(function(item){
+      totKids += Number(item.r.kids) || 0;
+      (Array.isArray(item.r.teachers) ? item.r.teachers : []).forEach(function(n){ if (n) totT[String(n).trim().toLowerCase()] = 1; });
+    });
+    var nT = Object.keys(totT).length;
+    $('totals').innerHTML = '<span class="tot">🧒 <b>' + totKids + '</b>' + (totKids === 1 ? 'kid' : 'kids') + ' checked in</span>' +
+      '<span class="tot">👩‍🏫 <b>' + nT + '</b>' + (nT === 1 ? 'teacher' : 'teachers') + ' in classrooms</span>';
     $('rooms').innerHTML = rh || '<div class="allgood" style="grid-column:1/-1">No classroom data yet 🎈</div>';
 
     if (fresh.length) fireAlerts(fresh);
