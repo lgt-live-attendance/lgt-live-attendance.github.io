@@ -79,7 +79,7 @@
   .alert.alone{border-color:var(--purple);background:#f7efff}
   .alert.extra{border-color:var(--blue);background:#eef6ff}
   .alert.full{border-color:#f59e0b;background:#fff6e5}
-  .alert.over{border-color:var(--red);background:#ffe3e3;animation:pop .35s ease-out, flash 1s infinite}
+  .alert.over{border-color:var(--red);background:#ffe3e3;animation:pop .35s ease-out}
   .alert.isnew{outline:4px solid rgba(229,57,53,.35)}
   @keyframes flash{0%,100%{background:#ffe3e3}50%{background:#ff8a80}}
   @keyframes pop{0%{transform:scale(.96);opacity:0}100%{transform:scale(1);opacity:1}}
@@ -125,7 +125,9 @@
   .kid.abs{background:#fffde7;border-color:#fdd835;color:#7a6a00}
   .kid.no{background:#f3f4f6;border-color:#d5d9e0;color:#9aa1ad}
   .kid .kd{width:12px;height:12px;border-radius:50%;display:inline-block;flex:0 0 12px}
-  .kd.here{background:#2eb872}.kd.no{background:#e53935}.kd.abs{background:#fdd835}.kd.out{background:#9aa1ad}
+  .kd.here{background:#2eb872}.kd.no{background:#e53935}.kd.abs{background:#fdd835}.kd.out{background:#9aa1ad}.kd.visit{background:#303f9f}
+  .kid.visit{background:#e8eaf6;border-color:#9fa8da;color:#303f9f}
+  .kid .from{font-size:11px;font-weight:800;opacity:.8}
   .room{cursor:pointer} .lv{color:#6b7380;font-weight:600;font-size:.85em}
   .tinfo{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}
   .mstat{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
@@ -335,15 +337,25 @@
   var LAST_ROOMS = [], LAST_FLOAT = [], LAST_LUNCH = null, LAST_EXTRA = [], LAST_LEAVE = {}, LAST_LT = {}, LAST_NH = [], OPEN_MODAL = null;
   var KST = {here:{c:'here',l:'Here'}, out:{c:'out',l:'Signed out'}, no:{c:'no',l:'Not here'}, abs:{c:'abs',l:'Absent'}};
   var KORDER = {here:0, no:1, abs:2, out:3};
-  var LEGEND = '<div class="mnote"><span class="kd here"></span> Here · <span class="kd no"></span> Not here yet · <span class="kd abs"></span> Marked absent in Core · <span class="kd out"></span> Signed out (went home)</div>';
-  function kidChip(k){ var m = KST[k.s] || KST.here; return '<span class="kid ' + m.c + '"><span class="kd ' + m.c + '"></span>' + esc(k.n) + ' <span class="st">' + m.l + '</span></span>'; }
+  function legendHtml(ros){
+    var vis = (ros || []).some(function(k){ return k && k.h; });
+    return '<div class="mnote"><span class="kd here"></span> Here · <span class="kd no"></span> Not here yet · <span class="kd abs"></span> Marked absent in Core · <span class="kd out"></span> Signed out (went home)' + (vis ? ' · <span class="kd visit"></span> From another class' : '') + '</div>';
+  }
+  function kidChip(k){
+    if (k && k.h && k.s === 'here') {
+      return '<span class="kid visit"><span class="kd visit"></span>' + esc(k.n) + ' <span class="from">· from ' + esc(dispName(k.h)) + '</span></span>';
+    }
+    var m = KST[k.s] || KST.here;
+    return '<span class="kid ' + m.c + '"><span class="kd ' + m.c + '"></span>' + esc(k.n) + ' <span class="st">' + m.l + '</span></span>';
+  }
   function sortRoster(r){ var ros = Array.isArray(r.roster) ? r.roster.slice() : []; ros.sort(function(a, b){ return ((KORDER[a.s] == null ? 9 : KORDER[a.s]) - (KORDER[b.s] == null ? 9 : KORDER[b.s])) || String(a.n).localeCompare(String(b.n)); }); return ros; }
   function rosterCounts(ros){ var c = {here:0, no:0, abs:0, out:0}; ros.forEach(function(k){ if (c[k.s] != null) c[k.s]++; }); return c; }
   function cntLine(c){ return c.here + ' here · ' + c.no + ' not here' + (c.abs ? ' · ' + c.abs + ' absent' : '') + ' · ' + c.out + ' signed out'; }
   function kidsModalHtml(){
     var any = LAST_ROOMS.some(function(r){ return Array.isArray(r.roster) && r.roster.length; });
     if (!any) return '<div class="mnote">Kid names will show here after the next attendance check.</div>';
-    var h = LEGEND;
+    var all = []; LAST_ROOMS.forEach(function(r){ sortRoster(r).forEach(function(k){ all.push(k); }); });
+    var h = legendHtml(all);
     LAST_ROOMS.forEach(function(r){
       var ros = sortRoster(r);
       if (!ros.length) return;
@@ -364,7 +376,7 @@
     if (combinedTag(r)) h += '<div class="mnote">' + combinedTag(r) + '</div>';
     if (r.alarm) h += '<div class="mnote" style="color:#c62828;font-weight:800">🚨 Needs attention: ' + esc(r.alarm) + '</div>';
     h += '<div class="mroom"><h3>Teachers</h3>' + (t.length ? '<div class="tinfo">' + t.map(function(n){ return '<span class="chip">👩‍🏫 ' + esc(tName(n)) + lv(n) + '</span>'; }).join('') + '</div>' : '<div class="mnote">No teacher signed into this room on SNT right now.</div>') + lunchChips(r.rawName || r.name) + '</div>';
-    h += '<div class="mroom"><h3>Kids<small>' + (ros.length ? cntLine(c) : '') + '</small></h3>' + (ros.length ? LEGEND + ros.map(kidChip).join('') : '<div class="mnote">Kid names will show here after the next attendance check.</div>') + '</div>';
+    h += '<div class="mroom"><h3>Kids<small>' + (ros.length ? cntLine(c) : '') + '</small></h3>' + (ros.length ? legendHtml(ros) + ros.map(kidChip).join('') : '<div class="mnote">Kid names will show here after the next attendance check.</div>') + '</div>';
     $('modalBody').innerHTML = h;
   }
   function nameTable(arr, icon, extra){
