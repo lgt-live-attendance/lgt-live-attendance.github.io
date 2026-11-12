@@ -139,6 +139,7 @@
   .tcount{font-size:12px;font-weight:800;color:var(--muted);white-space:nowrap}
   .chips{display:flex;flex-wrap:wrap;gap:3px}
   .chip{background:#f1f4fa;border-radius:999px;padding:2px 7px;font-weight:800;font-size:11px}
+  .chips.lunchchips{margin-top:3px} .chip.lunch-chip{background:#fff8e1;color:#6d5a1e;font-weight:700;border:1px solid #f3e3b0}
   .room.staffed{
     background:#fff8e6;border-top-color:var(--amber);
     box-shadow:0 6px 16px rgba(255,179,0,.16);
@@ -300,6 +301,19 @@
   }
   // Scheduled leave time from Core (Dave 11/12), from snapshot.leave {"Full Name":"5:30 PM"}.
   function closingNow(){ var p = new Intl.DateTimeFormat('en-US',{timeZone:'America/Chicago',hour:'numeric',hour12:false}).format(new Date()); return parseInt(p,10) >= 15; } // leave times only 3 PM to close (Dave 11/12)
+  // Lunch times (Dave 11/12 4:04 PM), from snapshot.lunchTimes {"Full Name":{"out","back","est","room"}}; shown all day.
+  function backTxt(x){ return (x.est ? 'back about ' : 'back at ') + esc(x.back); }
+  function lt(full){ var x = LAST_LT[String(full || '').trim().toLowerCase()]; return (x && x.out && x.back) ? ' <span class="lv">· lunch at ' + esc(x.out) + ', ' + backTxt(x) + '</span>' : ''; }
+  function lunchInRoom(raw){
+    var out = [];
+    for (var k in LAST_LT) { var x = LAST_LT[k]; if (x && x.room && x.room === raw && x.back) out.push(x); }
+    out.sort(function(a, b){ return tName(a.full).localeCompare(tName(b.full)); });
+    return out;
+  }
+  function lunchChips(raw){
+    var l = lunchInRoom(raw);
+    return l.length ? '<div class="chips lunchchips">' + l.map(function(x){ return '<span class="chip lunch-chip">🥪 ' + esc(tName(x.full)) + ' · ' + backTxt(x) + '</span>'; }).join('') + '</div>' : '';
+  }
   function lv(full){ if (!closingNow()) return ''; var v = LAST_LEAVE[String(full || '').trim().toLowerCase()]; return v ? ' <span class="lv">· leaves ' + esc(v) + '</span>' : ''; }
   function shortenNames(text, fulls){
     var out = String(text || '');
@@ -318,7 +332,7 @@
     return safe.replace(re, '<b>$1</b>');
   }
   // Display renames (Dave 11/12): Core's "Preppers" shows as "Prepper A".
-  var LAST_ROOMS = [], LAST_FLOAT = [], LAST_LUNCH = null, LAST_EXTRA = [], LAST_LEAVE = {}, OPEN_MODAL = null;
+  var LAST_ROOMS = [], LAST_FLOAT = [], LAST_LUNCH = null, LAST_EXTRA = [], LAST_LEAVE = {}, LAST_LT = {}, OPEN_MODAL = null;
   var KST = {here:{c:'here',l:'Here'}, out:{c:'out',l:'Signed out'}, no:{c:'no',l:'Not here'}, abs:{c:'abs',l:'Absent'}};
   var KORDER = {here:0, no:1, abs:2, out:3};
   var LEGEND = '<div class="mnote"><span class="kd here"></span> Here · <span class="kd no"></span> Not here yet · <span class="kd abs"></span> Marked absent in Core · <span class="kd out"></span> Signed out (went home)</div>';
@@ -349,13 +363,13 @@
       '<span>🏠 ' + ((Number(r.signedOut) || 0)) + ' signed out</span>' + ((Number(r.notHere) || 0) ? '<span>' + Number(r.notHere) + ' not here</span>' : '') + '</div>';
     if (combinedTag(r)) h += '<div class="mnote">' + combinedTag(r) + '</div>';
     if (r.alarm) h += '<div class="mnote" style="color:#c62828;font-weight:800">🚨 Needs attention: ' + esc(r.alarm) + '</div>';
-    h += '<div class="mroom"><h3>Teachers</h3>' + (t.length ? '<div class="tinfo">' + t.map(function(n){ return '<span class="chip">👩‍🏫 ' + esc(tName(n)) + lv(n) + '</span>'; }).join('') + '</div>' : '<div class="mnote">No teacher signed into this room on SNT right now.</div>') + '</div>';
+    h += '<div class="mroom"><h3>Teachers</h3>' + (t.length ? '<div class="tinfo">' + t.map(function(n){ return '<span class="chip">👩‍🏫 ' + esc(tName(n)) + lv(n) + '</span>'; }).join('') + '</div>' : '<div class="mnote">No teacher signed into this room on SNT right now.</div>') + lunchChips(r.rawName || r.name) + '</div>';
     h += '<div class="mroom"><h3>Kids<small>' + (ros.length ? cntLine(c) : '') + '</small></h3>' + (ros.length ? LEGEND + ros.map(kidChip).join('') : '<div class="mnote">Kid names will show here after the next attendance check.</div>') + '</div>';
     $('modalBody').innerHTML = h;
   }
-  function nameTable(arr, icon){
+  function nameTable(arr, icon, extra){
     var l = arr.slice().sort(function(a, b){ return tName(a).localeCompare(tName(b)); });
-    return '<table style="width:100%;border-collapse:collapse;font-size:15px">' + l.map(function(n){ return '<tr><td style="padding:6px 4px;border-top:1px solid #eef1f5;font-weight:800">' + icon + ' ' + esc(tName(n)) + lv(n) + '</td></tr>'; }).join('') + '</table>';
+    return '<table style="width:100%;border-collapse:collapse;font-size:15px">' + l.map(function(n){ return '<tr><td style="padding:6px 4px;border-top:1px solid #eef1f5;font-weight:800">' + icon + ' ' + esc(tName(n)) + (extra ? extra(n) : lv(n)) + '</td></tr>'; }).join('') + '</table>';
   }
   function openModal(kind){
     OPEN_MODAL = kind;
@@ -373,7 +387,7 @@
     if (kind === 'lunch') {
       $('modalTitle').textContent = '🥪 On lunch';
       $('modalBody').innerHTML = LAST_LUNCH == null ? '<div class="mnote">Names will show after the next attendance check.</div>' :
-        (LAST_LUNCH.length ? '<div class="mnote">' + LAST_LUNCH.length + ' on lunch, A to Z</div>' + nameTable(LAST_LUNCH, '🥪') : '<div class="mnote">Nobody is on lunch right now.</div>');
+        (LAST_LUNCH.length ? '<div class="mnote">' + LAST_LUNCH.length + ' on lunch, A to Z</div>' + nameTable(LAST_LUNCH, '🥪', function(n){ return lt(n) + lv(n); }) : '<div class="mnote">Nobody is on lunch right now.</div>');
     }
     if (kind === 'float' || kind === 'extra') {
       $('modalTitle').textContent = '🧍 Floaters and extras';
@@ -428,6 +442,7 @@
   function render(data){
     lastData = data;
     var snap = (data && data.snapshot) || null;
+    LAST_LT = {}; if (snap && snap.lunchTimes && typeof snap.lunchTimes === 'object') { for (var ltk in snap.lunchTimes) { var lto = snap.lunchTimes[ltk]; if (lto && typeof lto === 'object') { LAST_LT[String(ltk).trim().toLowerCase()] = {full: String(ltk), out: lto.out ? String(lto.out) : '', back: lto.back ? String(lto.back) : '', est: !!lto.est, room: lto.room ? String(lto.room) : ''}; } } }
     LAST_LEAVE = {}; if (snap && snap.leave && typeof snap.leave === 'object') { for (var lk in snap.leave) { if (snap.leave[lk]) LAST_LEAVE[String(lk).trim().toLowerCase()] = String(snap.leave[lk]); } }
     var updIso = data && data.updatedIso;
     var upd = updIso ? new Date(updIso) : null;
@@ -572,6 +587,7 @@
       var chips = t.length
         ? '<div class="chips">' + t.map(function(n){ return '<span class="chip">👩‍🏫 ' + esc(tName(n)) + lv(n) + '</span>'; }).join('') + '</div>'
         : '';
+      chips += lunchChips(r.rawName);
       rh += '<div class="' + cls + '"' + style + ' data-room="' + esc(r.name) + '" title="See kids and teachers">' +
             '<div class="room-top"><h3>' + esc(r.name) + '</h3><div class="tags">' + tags + '</div></div>' +
             '<div class="counts"><div class="kids"><span class="n">' + kids + '</span><span class="w">' + (kids === 1 ? 'kid' : 'kids') + '</span></div>' +
