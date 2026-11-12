@@ -80,6 +80,7 @@
   .alert.empty,.alert.idle{border-color:var(--amber);background:#fff8e6}
   .alert.alone{border-color:var(--purple);background:#f7efff}
   .alert.extra{border-color:var(--blue);background:#eef6ff}
+  .alert.full{border-color:#f59e0b;background:#fff6e5}
   .alert.over{border-color:var(--red);background:#ffe3e3;animation:pop .35s ease-out, flash 1s infinite}
   .alert.isnew{outline:4px solid rgba(229,57,53,.35)}
   @keyframes flash{0%,100%{background:#ffe3e3}50%{background:#ff8a80}}
@@ -154,7 +155,7 @@
       <div class="logo">🏫</div>
       <div>
         <h1>Lake Georgetown TLE · Live Attendance</h1>
-        <div class="sub">Afternoon classroom checks · auto-updates every 30 seconds</div>
+        <div class="sub">Classroom checks 6:30 AM–6:30 PM · auto-updates every 30 seconds</div>
       </div>
     </div>
     <div class="clockbox">
@@ -171,7 +172,7 @@
 
   <section id="quiet" class="quiet hidden">
     <div class="big">🌙</div>
-    <div class="t">Checks run 3:00–6:30 PM on school days</div>
+    <div class="t">Checks run 6:30 AM–6:30 PM on school days</div>
     <div class="s" id="quietSub">No live data right now. This page will wake up on its own.</div>
   </section>
 
@@ -191,7 +192,7 @@
   'use strict';
   var TZ = 'America/Chicago';
   var POLL_MS = 30000;
-  var STALE_MIN = 10;
+  var STALE_MIN = 20;
   var COLORS = ['#ff7a59','#1e88e5','#2eb872','#8e44ad','#ffb300','#00acc1','#e91e63','#5c6bc0'];
   var META = {
     combine:{ic:'🔴',lbl:'Combine'},
@@ -199,7 +200,8 @@
     idle:{ic:'🟠',lbl:'Idle teacher'},
     alone:{ic:'🟣',lbl:'Alone'},
     extra:{ic:'🔵',lbl:'Extra teachers'},
-    over:{ic:'🚨',lbl:'Over ratio'}
+    over:{ic:'🚨',lbl:'Over ratio'},
+    full:{ic:'🟠',lbl:'Near full · open a room'}
   };
   var lastData = null, fetchFailed = false, audioCtx = null, flashTimer = null;
   var baseTitle = document.title;
@@ -250,7 +252,7 @@
   }
   function inWindow(p){
     var mins = p.h*60 + p.m;
-    return mins >= 15*60 && mins <= 18*60+35; // 3:00 PM – 6:30 PM (+5 min grace for the 6:30 check)
+    return mins >= 6*60+30 && mins <= 18*60+35; // 6:30 AM – 6:30 PM (+5 min grace)
   }
 
   function boldify(text, names){
@@ -309,7 +311,7 @@
     var banner = $('doneBanner');
     banner.classList.toggle('hidden', !afterHours);
     if (afterHours) {
-      banner.textContent = 'Checks are done for today. Last check ' + ((snap && snap.updated) || fmtTime(upd)) + '. They resume at 3:00 PM on school days.';
+      banner.textContent = 'Checks are done for today. Last check ' + ((snap && snap.updated) || fmtTime(upd)) + '. They resume at 6:30 AM on school days.';
     }
 
     var alerts = Array.isArray(snap.alerts) ? snap.alerts : [];
