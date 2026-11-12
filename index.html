@@ -370,20 +370,17 @@
       $('modalBody').innerHTML = LAST_LUNCH == null ? '<div class="mnote">Names will show after the next attendance check.</div>' :
         (LAST_LUNCH.length ? '<div class="mnote">' + LAST_LUNCH.length + ' on lunch, A to Z</div>' + nameTable(LAST_LUNCH, '🥪') : '<div class="mnote">Nobody is on lunch right now.</div>');
     }
-    if (kind === 'extra') {
-      $('modalTitle').textContent = '🔵 Extra teachers';
-      $('modalBody').innerHTML = !LAST_EXTRA.length ? '<div class="mnote">No rooms have extra teachers right now.</div>' :
-        '<div class="mnote">Rooms with more teachers than they need. Any one of the teachers listed could step out, as long as the room stays in ratio.</div>' +
-        LAST_EXTRA.map(function(x){
+    if (kind === 'float' || kind === 'extra') {
+      $('modalTitle').textContent = '🧍 Floaters and extras';
+      var fh = '<div class="mroom"><h3>Floaters<small>clocked in, not signed into a classroom</small></h3>' +
+        (LAST_FLOAT.length ? nameTable(LAST_FLOAT, '🧍') : '<div class="mnote">Nobody is floating right now.</div>') + '</div>';
+      var eh = '<div class="mroom"><h3>Classrooms with extra teachers<small>any one listed could step out if the room stays in ratio</small></h3>' +
+        (LAST_EXTRA.length ? LAST_EXTRA.map(function(x){
           var names = x.t.map(function(n){ return tName(n); }).sort(function(a, b){ return a.localeCompare(b); });
-          return '<div class="mroom"><h3>' + esc(x.room) + '<small>' + (x.empty ? 'no kids, ' + x.nt + ' ' + (x.nt === 1 ? 'teacher' : 'teachers') + ' (all can step out)' : x.kids + ' kids, ' + x.nt + ' teachers') + '</small></h3>' +
+          return '<div style="margin-top:10px"><div style="font-weight:800">' + esc(x.room) + ' <span style="color:#5c6573;font-weight:700;font-size:13px">' + (x.empty ? 'no kids, ' + x.nt + ' ' + (x.nt === 1 ? 'teacher' : 'teachers') + ' (all can step out)' : x.kids + ' kids, ' + x.nt + ' teachers') + '</span></div>' +
             (names.length ? nameTable(names, '👩‍🏫') : '<div class="mnote">Teacher names will show after the next check.</div>') + '</div>';
-        }).join('');
-    }
-    if (kind === 'float') {
-      $('modalTitle').textContent = '🧍 Available floaters';
-      $('modalBody').innerHTML = '<div class="mnote">Clocked in at Core but not signed into a classroom.</div>' +
-        (LAST_FLOAT.length ? nameTable(LAST_FLOAT, '🧍') : '<div class="mnote">Nobody is floating right now.</div>');
+        }).join('') : '<div class="mnote">No rooms have extra teachers right now.</div>') + '</div>';
+      $('modalBody').innerHTML = fh + eh;
     }
     $('modalBg').classList.remove('hidden');
   }
@@ -392,7 +389,6 @@
     var t = e.target;
     if (t.closest && t.closest('#totKids')) { openModal('kids'); return; }
     if (t.closest && t.closest('#totFloat')) { openModal('float'); return; }
-    if (t.closest && t.closest('#totExtra')) { openModal('extra'); return; }
     if (t.closest && t.closest('#totT')) { openModal('teachers'); return; }
     if (t.closest && t.closest('#totLunch')) { openModal('lunch'); return; }
     if (t.id === 'modalX' || t.id === 'modalBg') { closeModal(); return; }
@@ -565,7 +561,7 @@
     $('totals').innerHTML = '<span class="tot click" id="totKids" title="See every kid">🧒 <b>' + totKids + '</b>' + (totKids === 1 ? 'kid' : 'kids') + ' checked in<span class="more">see list ›</span></span>' +
       '<span class="tot click" id="totT" title="See teachers">👩‍🏫 <b>' + nT + '</b>' + (nT === 1 ? 'teacher' : 'teachers') + ' in classrooms<span class="more">see ›</span></span>' +
       ((snap.onLunch == null || snap.onLunch === '') ? '' : '<span class="tot click" id="totLunch" title="See who is on lunch">🥪 <b>' + (Number(snap.onLunch) || 0) + '</b>on lunch<span class="more">see ›</span></span>') +
-      (Array.isArray(snap.floaters) ? '<span class="tot click" id="totFloat" title="See floaters">🧍 <b>' + snap.floaters.length + '</b>' + (snap.floaters.length === 1 ? 'floater' : 'floaters') + ' available<span class="more">see ›</span></span>' : '');
+      '';
     // Extra teachers (Dave 11/12): rooms from the "extra" suggestions, plus rooms with teachers and no kids.
     var ex = [], seenX = {};
     function findRoom(nm){ var k = String(nm || '').toLowerCase().trim(), f = null; LAST_ROOMS.forEach(function(r){ if (String(r.rawName || '').toLowerCase() === k || String(r.name || '').toLowerCase() === k) f = r; }); return f; }
@@ -576,7 +572,8 @@
     });
     LAST_ROOMS.forEach(function(r){ var t = Array.isArray(r.teachers) ? r.teachers : []; if (!(Number(r.kids) || 0) && t.length && !seenX[r.name]) { seenX[r.name] = 1; ex.push({room: r.name, kids: 0, nt: t.length, t: t, empty: true}); } });
     LAST_EXTRA = ex;
-    if (ex.length) $('totals').innerHTML += '<span class="tot click" id="totExtra" title="See extra teachers">🔵 <b>' + ex.length + '</b>' + (ex.length === 1 ? 'room' : 'rooms') + ' with extra teachers<span class="more">see ›</span></span>';
+    var flN = Array.isArray(snap.floaters) ? snap.floaters.length : 0;
+    if (Array.isArray(snap.floaters) || ex.length) $('totals').innerHTML += '<span class="tot click" id="totFloat" title="See floaters and extra teachers">🧍 <b>' + (flN + ex.length) + '</b>floaters and extras<span class="more">see ›</span></span>';
     LAST_FLOAT = Array.isArray(snap.floaters) ? snap.floaters : [];
     LAST_LUNCH = Array.isArray(snap.lunch) ? snap.lunch : null;
     $('rooms').innerHTML = rh || '<div class="allgood" style="grid-column:1/-1">No classroom data yet 🎈</div>';
