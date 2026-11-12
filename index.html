@@ -94,6 +94,7 @@
   .totals{display:flex;flex-wrap:wrap;gap:8px;margin:-4px 0 10px}
   .totals .tot{background:#fff;border:2px solid #e4e7ec;border-radius:999px;padding:6px 14px;font-weight:800;font-size:15px}
   .totals .tot b{font-size:18px;font-weight:900;margin-right:4px}
+  .badge.nothere{background:#fff1e6;color:#b45309}
   .room{
     background:var(--card);border-radius:14px;padding:8px 10px 10px;box-shadow:var(--shadow);
     border-top:6px solid var(--c,#1e88e5);animation:pop .35s ease-out
@@ -259,6 +260,21 @@
     return mins >= 6*60+30 && mins <= 18*60+35; // 6:30 AM – 6:30 PM (+5 min grace)
   }
 
+  // Teacher display names (Dave 11/12): first name only, except Maria-Sylva Ramos goes by "Ramos".
+  var NAME_OVERRIDES = {'maria-sylva ramos':'Ramos'};
+  function tName(full){
+    var f = String(full || '').trim();
+    if (!f) return f;
+    var o = NAME_OVERRIDES[f.toLowerCase()];
+    return o || f.split(/\s+/)[0];
+  }
+  function shortenNames(text, fulls){
+    var out = String(text || '');
+    (fulls || []).slice().sort(function(a,b){ return b.length - a.length; }).forEach(function(n){
+      if (n && n.indexOf(' ') !== -1) out = out.split(n).join(tName(n));
+    });
+    return out;
+  }
   function boldify(text, names){
     var safe = esc(text);
     var list = (names || []).filter(function(n){ return n && String(n).trim(); })
@@ -329,6 +345,14 @@
     prevKeys = keys;
     saveSeen(keys);
 
+    var allT = []; LAST_T = allT;
+    (Array.isArray(snap.rooms) ? snap.rooms : []).forEach(function(r){ (Array.isArray(r.teachers) ? r.teachers : []).forEach(function(n){ if (n) allT.push(String(n).trim()); }); });
+    var roomNames = (Array.isArray(snap.rooms) ? snap.rooms : []).map(function(r){ return String(r.name || '').trim().toLowerCase(); });
+    alerts.forEach(function(a){ (a.bold || []).forEach(function(n){
+      var t = String(n || '').trim();
+      if (t.indexOf(' ') !== -1 && roomNames.indexOf(t.toLowerCase()) === -1 && !/^(infant|toddler|twaddler|prepper|preschool|school)/i.test(t)) allT.push(t);
+    }); });
+    ['Maria-Sylva Ramos'].forEach(function(n){ allT.push(n); });
     var ah = '';
     if (!alerts.length) {
       ah = '<div class="allgood">No alerts right now ✅ 🎉</div>';
@@ -337,7 +361,7 @@
         var t = META[a.type] ? a.type : 'extra';
         var m = META[t];
         var isNew = fresh.indexOf(a) !== -1;
-        ah += '<div class="alert ' + t + (isNew ? ' isnew' : '') + '"><div class="ic">' + m.ic + '</div><div><span class="lbl">' + esc(m.lbl) + (isNew ? ' · NEW' : '') + '</span>' + boldify(dispName(a.text), (a.bold || []).map(dispName)) + '</div></div>';
+        ah += '<div class="alert ' + t + (isNew ? ' isnew' : '') + '"><div class="ic">' + m.ic + '</div><div><span class="lbl">' + esc(m.lbl) + (isNew ? ' · NEW' : '') + '</span>' + boldify(shortenNames(dispName(a.text), allT), (a.bold || []).map(function(n){ return shortenNames(dispName(n), allT); })) + '</div></div>';
       });
     }
     $('alerts').innerHTML = ah;
@@ -389,10 +413,12 @@
         cls += ' closed';
         tags += '<span class="tag closed-tag">Closed</span>';
       }
+      var nh = (r.notHere == null || r.notHere === '') ? 0 : (Number(r.notHere) || 0);
+      if (nh > 0) tags += '<span class="badge nothere">' + nh + ' not here</span>';
       tags += '<span class="badge">' + so + ' signed out</span>';
       var tLabel = t.length + ' ' + (t.length === 1 ? 'teacher' : 'teachers');
       var chips = t.length
-        ? '<div class="chips">' + t.map(function(n){ return '<span class="chip">👩‍🏫 ' + esc(n) + '</span>'; }).join('') + '</div>'
+        ? '<div class="chips">' + t.map(function(n){ return '<span class="chip">👩‍🏫 ' + esc(tName(n)) + '</span>'; }).join('') + '</div>'
         : '';
       rh += '<div class="' + cls + '"' + style + '>' +
             '<div class="room-top"><h3>' + esc(r.name) + '</h3><div class="tags">' + tags + '</div></div>' +
@@ -486,7 +512,8 @@
   window.addEventListener('focus', stopFlash);
   document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible' && document.hasFocus()) stopFlash(); });
 
-  function plain(a){ return String(a.text || ''); }
+  var LAST_T = [];
+  function plain(a){ return shortenNames(dispName(String(a.text || '')), LAST_T); }
   function notify(body){
     try {
       if (!('Notification' in window) || Notification.permission !== 'granted') return false;
