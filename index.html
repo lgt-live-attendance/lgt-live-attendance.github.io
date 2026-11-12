@@ -209,7 +209,7 @@
 
   // Data source: the Apps Script web app's ?format=json endpoint
   function fetchSnapshot(ok, fail){
-    if (!WEB_APP_URL || WEB_APP_URL.indexOf('PASTE_') !== -1) { fail(new Error('WEB_APP_URL not set')); return; }
+    if (!WEB_APP_URL || WEB_APP_URL.indexOf('AKfycbzLiSbs1MQFvoVBdsNXTZXZPJSqwBB9GPf955_IuKV9d2U4QG4Yv4se2DdxhQZg1JwJ') !== -1) { fail(new Error('WEB_APP_URL not set')); return; }
     var url = WEB_APP_URL + (WEB_APP_URL.indexOf('?') === -1 ? '?' : '&') + 'format=json&t=' + Date.now();
     fetch(url, {cache:'no-store', redirect:'follow'})
       .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
@@ -264,6 +264,8 @@
     var re = new RegExp('(' + list.map(reEsc).join('|') + ')', 'g');
     return safe.replace(re, '<b>$1</b>');
   }
+  // Display renames (Dave 11/12): Core's "Preppers" shows as "Prepper A".
+  function dispName(t){ return String(t == null ? '' : t).replace(/\bPreppers\b/g, 'Prepper A'); }
   function alertKey(a){ return String(a.type || '') + '|' + String(a.text || ''); }
 
   // ---------- seen-alerts memory (survives reloads, per day) ----------
@@ -331,7 +333,7 @@
         var t = META[a.type] ? a.type : 'extra';
         var m = META[t];
         var isNew = fresh.indexOf(a) !== -1;
-        ah += '<div class="alert ' + t + (isNew ? ' isnew' : '') + '"><div class="ic">' + m.ic + '</div><div><span class="lbl">' + esc(m.lbl) + (isNew ? ' · NEW' : '') + '</span>' + boldify(a.text, a.bold) + '</div></div>';
+        ah += '<div class="alert ' + t + (isNew ? ' isnew' : '') + '"><div class="ic">' + m.ic + '</div><div><span class="lbl">' + esc(m.lbl) + (isNew ? ' · NEW' : '') + '</span>' + boldify(dispName(a.text), (a.bold || []).map(dispName)) + '</div></div>';
       });
     }
     $('alerts').innerHTML = ah;
@@ -343,16 +345,21 @@
       if (n >= 1) return 'staffed';
       return 'closed';
     }
-    var rank = {active:0, staffed:1, closed:2};
-    var rooms = (Array.isArray(snap.rooms) ? snap.rooms : []).map(function(r, i){ return {r:r, i:i}; })
+    // Fixed age order (Dave 11/12): youngest rooms first; unknown rooms go last in JSON order.
+    var AGE_ORDER = ['infant a','infant b','toddlers','twaddlers','prepper a','prepper b','preschool 1a','preschool 1b','preschool 2a','preschool 2b','preschool 3','pre-k','prek','school age','school-age','school age 1','school age 2','school-age experience'];
+    function ageRank(name){
+      var k = String(name || '').toLowerCase().trim();
+      var i = AGE_ORDER.indexOf(k);
+      if (i !== -1) return i;
+      if (k.indexOf('school') === 0) return 100;
+      return 200;
+    }
+    var rooms = (Array.isArray(snap.rooms) ? snap.rooms : []).map(function(r, i){
+        var c = {}; for (var x in r) c[x] = r[x]; c.name = dispName(r.name); return {r:c, i:i};
+      })
       .sort(function(a, b){
-        var sa = roomState(a.r), sb = roomState(b.r);
-        if (sa !== sb) return rank[sa] - rank[sb];
-        if (sa === 'active') {
-          var d = (Number(b.r.kids) || 0) - (Number(a.r.kids) || 0);
-          if (d) return d;
-        }
-        return a.i - b.i; // JSON order as the tie-break
+        var d = ageRank(a.r.name) - ageRank(b.r.name);
+        return d || (a.i - b.i);
       });
     var rh = '', activeIdx = 0;
     rooms.forEach(function(item){
