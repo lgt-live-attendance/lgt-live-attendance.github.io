@@ -348,6 +348,10 @@
     h += '<div class="mroom"><h3>Kids<small>' + (ros.length ? cntLine(c) : '') + '</small></h3>' + (ros.length ? LEGEND + ros.map(kidChip).join('') : '<div class="mnote">Kid names will show here after the next attendance check.</div>') + '</div>';
     $('modalBody').innerHTML = h;
   }
+  function nameTable(arr, icon){
+    var l = arr.map(function(n){ return tName(n); }).sort(function(a, b){ return a.localeCompare(b); });
+    return '<table style="width:100%;border-collapse:collapse;font-size:15px">' + l.map(function(n){ return '<tr><td style="padding:6px 4px;border-top:1px solid #eef1f5;font-weight:800">' + icon + ' ' + esc(n) + '</td></tr>'; }).join('') + '</table>';
+  }
   function openModal(kind){
     OPEN_MODAL = kind;
     if (kind.indexOf('room:') === 0) roomModal(kind.slice(5));
@@ -364,12 +368,12 @@
     if (kind === 'lunch') {
       $('modalTitle').textContent = '🥪 On lunch';
       $('modalBody').innerHTML = LAST_LUNCH == null ? '<div class="mnote">Names will show after the next attendance check.</div>' :
-        (LAST_LUNCH.length ? LAST_LUNCH.map(function(n){ return '<span class="chip">🥪 ' + esc(tName(n)) + '</span>'; }).join(' ') : '<div class="mnote">Nobody is on lunch right now.</div>');
+        (LAST_LUNCH.length ? '<div class="mnote">' + LAST_LUNCH.length + ' on lunch, A to Z</div>' + nameTable(LAST_LUNCH, '🥪') : '<div class="mnote">Nobody is on lunch right now.</div>');
     }
     if (kind === 'float') {
       $('modalTitle').textContent = '🧍 Available floaters';
       $('modalBody').innerHTML = '<div class="mnote">Clocked in at Core but not signed into a classroom.</div>' +
-        (LAST_FLOAT.length ? LAST_FLOAT.map(function(n){ return '<span class="chip">👩‍🏫 ' + esc(tName(n)) + '</span>'; }).join(' ') : '<div class="mnote">Nobody is floating right now.</div>');
+        (LAST_FLOAT.length ? nameTable(LAST_FLOAT, '🧍') : '<div class="mnote">Nobody is floating right now.</div>');
     }
     $('modalBg').classList.remove('hidden');
   }
