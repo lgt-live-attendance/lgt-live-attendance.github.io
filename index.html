@@ -308,7 +308,7 @@
     return safe.replace(re, '<b>$1</b>');
   }
   // Display renames (Dave 11/12): Core's "Preppers" shows as "Prepper A".
-  var LAST_ROOMS = [], LAST_FLOAT = [], OPEN_MODAL = null;
+  var LAST_ROOMS = [], LAST_FLOAT = [], LAST_LUNCH = null, OPEN_MODAL = null;
   var KST = {here:{c:'here',l:'Here'}, out:{c:'out',l:'Signed out'}, no:{c:'no',l:'Not here'}};
   function kidsModalHtml(){
     var any = LAST_ROOMS.some(function(r){ return Array.isArray(r.roster) && r.roster.length; });
@@ -333,6 +333,22 @@
   function openModal(kind){
     OPEN_MODAL = kind;
     if (kind === 'kids') { $('modalTitle').textContent = '🧒 Kids by classroom'; $('modalBody').innerHTML = kidsModalHtml(); }
+    if (kind === 'teachers') {
+      $('modalTitle').textContent = '👩‍🏫 Teachers by classroom';
+      var th = '';
+      LAST_ROOMS.forEach(function(r){
+        var t = Array.isArray(r.teachers) ? r.teachers : [];
+        if (!t.length) return;
+        th += '<div class="mroom"><h3>' + esc(r.name) + '<small>' + t.length + ' ' + (t.length === 1 ? 'teacher' : 'teachers') + ' · ' + (Number(r.kids) || 0) + ' kids</small></h3>' +
+          t.map(function(n){ return '<span class="chip">👩‍🏫 ' + esc(tName(n)) + '</span>'; }).join(' ') + '</div>';
+      });
+      $('modalBody').innerHTML = th || '<div class="mnote">No teachers signed into classrooms right now.</div>';
+    }
+    if (kind === 'lunch') {
+      $('modalTitle').textContent = '🥪 On lunch';
+      $('modalBody').innerHTML = LAST_LUNCH == null ? '<div class="mnote">Names will show after the next attendance check.</div>' :
+        (LAST_LUNCH.length ? LAST_LUNCH.map(function(n){ return '<span class="chip">🥪 ' + esc(tName(n)) + '</span>'; }).join(' ') : '<div class="mnote">Nobody is on lunch right now.</div>');
+    }
     if (kind === 'float') {
       $('modalTitle').textContent = '🧍 Available floaters';
       $('modalBody').innerHTML = '<div class="mnote">Clocked in at Core but not signed into a classroom.</div>' +
@@ -345,6 +361,8 @@
     var t = e.target;
     if (t.closest && t.closest('#totKids')) { openModal('kids'); return; }
     if (t.closest && t.closest('#totFloat')) { openModal('float'); return; }
+    if (t.closest && t.closest('#totT')) { openModal('teachers'); return; }
+    if (t.closest && t.closest('#totLunch')) { openModal('lunch'); return; }
     if (t.id === 'modalX' || t.id === 'modalBg') closeModal();
   });
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeModal(); });
@@ -510,10 +528,11 @@
     var nT = Object.keys(totT).length;
     LAST_ROOMS = rooms.map(function(item){ return item.r; });
     $('totals').innerHTML = '<span class="tot click" id="totKids" title="See every kid">🧒 <b>' + totKids + '</b>' + (totKids === 1 ? 'kid' : 'kids') + ' checked in<span class="more">see list ›</span></span>' +
-      '<span class="tot">👩‍🏫 <b>' + nT + '</b>' + (nT === 1 ? 'teacher' : 'teachers') + ' in classrooms</span>' +
-      ((snap.onLunch == null || snap.onLunch === '') ? '' : '<span class="tot">🥪 <b>' + (Number(snap.onLunch) || 0) + '</b>on lunch</span>') +
+      '<span class="tot click" id="totT" title="See teachers">👩‍🏫 <b>' + nT + '</b>' + (nT === 1 ? 'teacher' : 'teachers') + ' in classrooms<span class="more">see ›</span></span>' +
+      ((snap.onLunch == null || snap.onLunch === '') ? '' : '<span class="tot click" id="totLunch" title="See who is on lunch">🥪 <b>' + (Number(snap.onLunch) || 0) + '</b>on lunch<span class="more">see ›</span></span>') +
       (Array.isArray(snap.floaters) ? '<span class="tot click" id="totFloat" title="See floaters">🧍 <b>' + snap.floaters.length + '</b>' + (snap.floaters.length === 1 ? 'floater' : 'floaters') + ' available<span class="more">see ›</span></span>' : '');
     LAST_FLOAT = Array.isArray(snap.floaters) ? snap.floaters : [];
+    LAST_LUNCH = Array.isArray(snap.lunch) ? snap.lunch : null;
     $('rooms').innerHTML = rh || '<div class="allgood" style="grid-column:1/-1">No classroom data yet 🎈</div>';
     if (OPEN_MODAL) openModal(OPEN_MODAL);
 
