@@ -35,19 +35,19 @@
     background-attachment:fixed;
     min-height:100vh;
   }
-  .wrap{max-width:1400px;margin:0 auto;padding:18px 18px 40px}
+  .wrap{max-width:1400px;margin:0 auto;padding:12px 14px 24px}
   /* Header */
   header{
     background:linear-gradient(90deg,#ff7a59,#ffb300 35%,#2eb872 65%,#1e88e5);
-    color:#fff;border-radius:var(--radius);padding:16px 22px;box-shadow:var(--shadow);
-    display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;
+    color:#fff;border-radius:var(--radius);padding:12px 18px;box-shadow:var(--shadow);
+    display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;
   }
-  .brand{display:flex;align-items:center;gap:12px}
-  .logo{font-size:38px;line-height:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.15))}
-  h1{margin:0;font-size:clamp(20px,2.6vw,32px);font-weight:900;letter-spacing:.3px;text-shadow:0 2px 0 rgba(0,0,0,.12)}
-  .sub{font-size:14px;opacity:.95;font-weight:700}
+  .brand{display:flex;align-items:center;gap:10px}
+  .logo{font-size:32px;line-height:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.15))}
+  h1{margin:0;font-size:clamp(18px,2.4vw,28px);font-weight:900;letter-spacing:.3px;text-shadow:0 2px 0 rgba(0,0,0,.12)}
+  .sub{font-size:13px;opacity:.95;font-weight:700}
   .clockbox{text-align:right}
-  .clock{font-size:clamp(26px,3.4vw,44px);font-weight:900;font-variant-numeric:tabular-nums;text-shadow:0 2px 0 rgba(0,0,0,.12)}
+  .clock{font-size:clamp(22px,3vw,36px);font-weight:900;font-variant-numeric:tabular-nums;text-shadow:0 2px 0 rgba(0,0,0,.12)}
   .status{display:flex;align-items:center;justify-content:flex-end;gap:8px;font-weight:800;font-size:15px}
   .dot{width:14px;height:14px;border-radius:50%;background:#7CFC9A;box-shadow:0 0 0 0 rgba(124,252,154,.8);animation:pulse 1.6s infinite}
   .dot.stale{background:var(--amber);box-shadow:0 0 0 0 rgba(255,179,0,.8);animation:pulseA 1.6s infinite}
@@ -55,7 +55,7 @@
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(124,252,154,.85)}70%{box-shadow:0 0 0 12px rgba(124,252,154,0)}100%{box-shadow:0 0 0 0 rgba(124,252,154,0)}}
   @keyframes pulseA{0%{box-shadow:0 0 0 0 rgba(255,179,0,.85)}70%{box-shadow:0 0 0 12px rgba(255,179,0,0)}100%{box-shadow:0 0 0 0 rgba(255,179,0,0)}}
   /* Controls */
-  .controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 2px}
+  .controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 2px 6px}
   button{
     font:inherit;font-weight:900;border:0;border-radius:999px;padding:10px 18px;cursor:pointer;
     box-shadow:0 4px 0 rgba(0,0,0,.15);transition:transform .08s;
@@ -66,15 +66,15 @@
   .perm{background:#fff;border-radius:999px;padding:8px 14px;font-weight:800;font-size:14px;box-shadow:var(--shadow)}
   .note{background:#fff3cd;color:#7a5200;border:2px dashed var(--amber);border-radius:14px;padding:8px 14px;font-weight:800;font-size:14px;display:none}
   .note.show{display:block}
-  h2{font-size:clamp(18px,2vw,24px);margin:22px 4px 10px;font-weight:900}
+  h2{font-size:clamp(16px,1.8vw,22px);margin:12px 4px 6px;font-weight:900}
   /* Alerts */
   .alerts{display:grid;gap:10px}
   .alert{
-    display:flex;align-items:flex-start;gap:14px;border-radius:16px;padding:14px 18px;
-    background:#fff;box-shadow:var(--shadow);border-left:10px solid var(--blue);
-    font-size:clamp(16px,1.6vw,20px);line-height:1.35;animation:pop .35s ease-out;
+    display:flex;align-items:flex-start;gap:10px;border-radius:14px;padding:8px 12px;
+    background:#fff;box-shadow:var(--shadow);border-left:8px solid var(--blue);
+    font-size:clamp(14px,1.4vw,17px);line-height:1.35;animation:pop .35s ease-out;
   }
-  .alert .ic{font-size:28px;line-height:1}
+  .alert .ic{font-size:22px;line-height:1}
   .alert .lbl{display:block;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:900;opacity:.75;margin-bottom:2px}
   .alert b{font-weight:900}
   .alert.combine{border-color:var(--red);background:#fff0f0}
@@ -87,22 +87,45 @@
   @keyframes pop{0%{transform:scale(.96);opacity:0}100%{transform:scale(1);opacity:1}}
   .allgood{
     background:linear-gradient(90deg,#dfffe9,#e8fff4);border:3px solid var(--green);color:#16794a;
-    border-radius:18px;padding:18px;font-size:clamp(20px,2.4vw,30px);font-weight:900;text-align:center;box-shadow:var(--shadow)
+    border-radius:16px;padding:12px;font-size:clamp(18px,2vw,26px);font-weight:900;text-align:center;box-shadow:var(--shadow)
   }
-  /* Rooms */
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+  /* Rooms — compact so ~13 cards fit on a laptop without much scrolling */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(186px,1fr));gap:8px}
   .room{
-    background:var(--card);border-radius:var(--radius);padding:16px 18px 18px;box-shadow:var(--shadow);
-    border-top:10px solid var(--c,#1e88e5);position:relative;animation:pop .35s ease-out
+    background:var(--card);border-radius:14px;padding:8px 10px 10px;box-shadow:var(--shadow);
+    border-top:6px solid var(--c,#1e88e5);animation:pop .35s ease-out
   }
-  .room h3{margin:0 0 4px;font-size:clamp(18px,1.7vw,22px);font-weight:900}
-  .kids{display:flex;align-items:baseline;gap:8px;margin:4px 0 10px}
-  .kids .n{font-size:clamp(48px,5vw,68px);font-weight:900;line-height:1;color:var(--c,#1e88e5)}
-  .kids .w{font-size:18px;font-weight:800;color:var(--muted)}
-  .chips{display:flex;flex-wrap:wrap;gap:6px}
-  .chip{background:#f1f4fa;border-radius:999px;padding:6px 12px;font-weight:800;font-size:14px}
-  .chip.none{background:#ffe3e3;color:#b71c1c}
-  .badge{position:absolute;top:14px;right:14px;background:#f1f4fa;color:var(--muted);border-radius:999px;padding:5px 11px;font-weight:900;font-size:13px}
+  .room-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 6px;margin-bottom:2px}
+  .room h3{margin:0;font-size:clamp(14px,1.3vw,16px);font-weight:900;line-height:1.2;flex:1 1 7.5rem;min-width:7.5rem;overflow-wrap:normal;word-break:normal;hyphens:none}
+  .tags{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;flex:1 1 auto}
+  .badge,.tag{border-radius:999px;padding:2px 7px;font-weight:900;font-size:10px;line-height:1.3;white-space:nowrap}
+  .badge{background:#f1f4fa;color:var(--muted)}
+  .tag.attention{background:#fff3cd;color:#7a5200;white-space:normal}
+  .tag.closed-tag{background:#d9dee6;color:#5c6573}
+  .counts{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 0 4px}
+  .kids{display:flex;align-items:baseline;gap:6px}
+  .kids .n{font-size:clamp(24px,2.5vw,34px);font-weight:900;line-height:1;color:var(--c,#1e88e5)}
+  .kids .w{font-size:13px;font-weight:800;color:var(--muted)}
+  .tcount{font-size:12px;font-weight:800;color:var(--muted);white-space:nowrap}
+  .chips{display:flex;flex-wrap:wrap;gap:3px}
+  .chip{background:#f1f4fa;border-radius:999px;padding:2px 7px;font-weight:800;font-size:11px}
+  .room.staffed{
+    background:#fff8e6;border-top-color:var(--amber);
+    box-shadow:0 6px 16px rgba(255,179,0,.16);
+    --c:var(--amber)
+  }
+  .room.closed{
+    background:#eef0f3;border-top-color:#b8bfc9;color:#6a7382;
+    opacity:.68;box-shadow:none;--c:#8a93a3
+  }
+  .room.closed h3,.room.closed .tcount,.room.closed .w{color:#6a7382}
+  .room.closed .n{color:#8a93a3}
+  .room.closed .chip,.room.closed .badge{background:#e4e7ec;color:#6a7382}
+  /* After-hours banner (today's last snapshot stays visible) */
+  .done-banner{
+    background:#eef2f7;color:#3d4a63;border-radius:14px;padding:8px 14px;
+    font-weight:800;font-size:14px;margin:4px 0 2px;line-height:1.35
+  }
   /* Quiet state */
   .quiet{
     text-align:center;background:#fff;border-radius:28px;box-shadow:var(--shadow);padding:46px 20px;margin-top:22px
@@ -111,15 +134,16 @@
   .quiet .t{font-size:clamp(22px,3vw,34px);font-weight:900;margin:10px 0 6px}
   .quiet .s{color:var(--muted);font-weight:700}
   .hidden{display:none !important}
-  footer{margin-top:26px;text-align:center;color:var(--muted);font-size:13px;font-weight:700}
+  footer{margin-top:16px;text-align:center;color:var(--muted);font-size:12px;font-weight:700}
   @media (max-width:600px){
     .wrap{padding:10px 10px 30px}
     header{padding:14px}
     .clockbox{text-align:left;width:100%}
     .status{justify-content:flex-start}
-    .grid{grid-template-columns:1fr 1fr;gap:10px}
-    .room{padding:12px}
-    .badge{position:static;display:inline-block;margin-bottom:6px}
+    .grid{grid-template-columns:1fr 1fr;gap:8px}
+    .room{padding:8px}
+    .tags{justify-content:flex-start}
+    header{padding:12px}
   }
   @media (max-width:380px){.grid{grid-template-columns:1fr}}
 </style>
@@ -154,6 +178,7 @@
   </section>
 
   <section id="live">
+    <div id="doneBanner" class="done-banner hidden"></div>
     <h2>🚨 Alerts</h2>
     <div class="alerts" id="alerts"></div>
     <h2>🧸 Classrooms</h2>
@@ -265,18 +290,28 @@
     if (upd && isNaN(upd.getTime())) upd = null;
     var now = new Date();
     var pNow = chiParts(now);
-    var today = upd && chiParts(upd).date === pNow.date;
-    var quiet = !snap || !upd || !today || !inWindow(pNow);
+    var today = !!(upd && chiParts(upd).date === pNow.date);
+    // Moon/quiet screen only when the snapshot is not from today (Central time).
+    // After 6:35 PM, keep showing today's last snapshot with a slim banner.
+    var quiet = !snap || !upd || !today;
+    var afterHours = today && (pNow.h * 60 + pNow.m > 18 * 60 + 35);
 
     updateStatus();
 
     $('quiet').classList.toggle('hidden', !quiet);
     $('live').classList.toggle('hidden', quiet);
     if (quiet) {
+      $('doneBanner').classList.add('hidden');
       $('quietSub').textContent = upd
-        ? 'Last check: ' + fmtTime(upd) + (today ? ' today' : ' on ' + new Intl.DateTimeFormat('en-US',{timeZone:TZ,weekday:'short',month:'short',day:'numeric'}).format(upd)) + '. This page wakes up on its own.'
+        ? 'Last check: ' + fmtTime(upd) + ' on ' + new Intl.DateTimeFormat('en-US',{timeZone:TZ,weekday:'short',month:'short',day:'numeric'}).format(upd) + '. This page wakes up on its own.'
         : 'No live data right now. This page wakes up on its own.';
       return;
+    }
+
+    var banner = $('doneBanner');
+    banner.classList.toggle('hidden', !afterHours);
+    if (afterHours) {
+      banner.textContent = 'Checks are done for today. Last check ' + ((snap && snap.updated) || fmtTime(upd)) + '. They resume at 3:00 PM on school days.';
     }
 
     var alerts = Array.isArray(snap.alerts) ? snap.alerts : [];
@@ -301,21 +336,54 @@
     }
     $('alerts').innerHTML = ah;
 
-    var rooms = (Array.isArray(snap.rooms) ? snap.rooms : []).slice()
-      .filter(function(r){ return Number(r.kids) > 0; })
-      .sort(function(a,b){ return (Number(b.kids)||0) - (Number(a.kids)||0) || String(a.name).localeCompare(String(b.name)); });
-    var rh = '';
-    rooms.forEach(function(r, i){
+    function roomState(r){
+      var k = Number(r.kids) || 0;
+      var n = Array.isArray(r.teachers) ? r.teachers.length : 0;
+      if (k > 0) return 'active';
+      if (n >= 1) return 'staffed';
+      return 'closed';
+    }
+    var rank = {active:0, staffed:1, closed:2};
+    var rooms = (Array.isArray(snap.rooms) ? snap.rooms : []).map(function(r, i){ return {r:r, i:i}; })
+      .sort(function(a, b){
+        var sa = roomState(a.r), sb = roomState(b.r);
+        if (sa !== sb) return rank[sa] - rank[sb];
+        if (sa === 'active') {
+          var d = (Number(b.r.kids) || 0) - (Number(a.r.kids) || 0);
+          if (d) return d;
+        }
+        return a.i - b.i; // JSON order as the tie-break
+      });
+    var rh = '', activeIdx = 0;
+    rooms.forEach(function(item){
+      var r = item.r;
       var kids = Number(r.kids) || 0;
       var t = Array.isArray(r.teachers) ? r.teachers : [];
-      var chips = t.length ? t.map(function(n){ return '<span class="chip">👩‍🏫 ' + esc(n) + '</span>'; }).join('') : '<span class="chip none">No teacher listed</span>';
-      var so = (r.signedOut != null && r.signedOut !== '') ? '<span class="badge">' + esc(r.signedOut) + ' signed out</span>' : '';
-      rh += '<div class="room" style="--c:' + COLORS[i % COLORS.length] + '">' + so +
-            '<h3>' + esc(r.name) + '</h3>' +
-            '<div class="kids"><span class="n">' + kids + '</span><span class="w">' + (kids === 1 ? 'kid' : 'kids') + '</span></div>' +
-            '<div class="chips">' + chips + '</div></div>';
+      var so = (r.signedOut == null || r.signedOut === '') ? 0 : (Number(r.signedOut) || 0);
+      var state = roomState(r);
+      var cls = 'room';
+      var style = '';
+      var tags = '';
+      if (state === 'active') {
+        style = ' style="--c:' + COLORS[activeIdx++ % COLORS.length] + '"';
+      } else if (state === 'staffed') {
+        cls += ' staffed';
+        tags += '<span class="tag attention">No kids · teacher still here</span>';
+      } else {
+        cls += ' closed';
+        tags += '<span class="tag closed-tag">Closed</span>';
+      }
+      tags += '<span class="badge">' + so + ' signed out</span>';
+      var tLabel = t.length + ' ' + (t.length === 1 ? 'teacher' : 'teachers');
+      var chips = t.length
+        ? '<div class="chips">' + t.map(function(n){ return '<span class="chip">👩‍🏫 ' + esc(n) + '</span>'; }).join('') + '</div>'
+        : '';
+      rh += '<div class="' + cls + '"' + style + '>' +
+            '<div class="room-top"><h3>' + esc(r.name) + '</h3><div class="tags">' + tags + '</div></div>' +
+            '<div class="counts"><div class="kids"><span class="n">' + kids + '</span><span class="w">' + (kids === 1 ? 'kid' : 'kids') + '</span></div>' +
+            '<div class="tcount">' + tLabel + '</div></div>' + chips + '</div>';
     });
-    $('rooms').innerHTML = rh || '<div class="allgood" style="grid-column:1/-1">All classrooms are empty 🎈</div>';
+    $('rooms').innerHTML = rh || '<div class="allgood" style="grid-column:1/-1">No classroom data yet 🎈</div>';
 
     if (fresh.length) fireAlerts(fresh);
   }
@@ -444,7 +512,7 @@
   setInterval(updateStatus, 15000);
   permStatus();
   poll(); setInterval(poll, POLL_MS);
-  // Re-evaluate quiet window every minute even when data is unchanged
+  // Re-evaluate after-hours / quiet state every minute even when data is unchanged
   setInterval(function(){ if (lastData) render(lastData); }, 60000);
 })();
 </script>
