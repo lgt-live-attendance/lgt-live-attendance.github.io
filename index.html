@@ -464,12 +464,13 @@
   function notify(body){
     try {
       if (!('Notification' in window) || Notification.permission !== 'granted') return false;
-      if (typeof showViaServiceWorker === 'function' && showViaServiceWorker(body)) return true;
+      // Desktop Chrome: show the pop-up directly from the page (most reliable on Windows/Mac).
       var n = new Notification('LGT Alert 🚨', {body: body, requireInteraction: true, tag: 'lgt-' + Date.now()});
       n.onclick = function(){ try { window.focus(); n.close(); } catch(e){} };
       return true;
     } catch(e) {
-      return false;
+      // Android Chrome blocks new Notification(); use the service worker there.
+      try { return !!(typeof showViaServiceWorker === 'function' && showViaServiceWorker(body)); } catch(e2){ return false; }
     }
   }
   function fireAlerts(list){
