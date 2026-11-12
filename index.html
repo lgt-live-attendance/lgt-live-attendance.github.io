@@ -480,9 +480,10 @@
       realA.forEach(function(a){ ah += card(a); });
     }
     $('alerts').innerHTML = ah;
-    var sh = ''; sugA.forEach(function(a){ sh += card(a); });
+    var sugShow = sugA.filter(function(a){ return a.type !== 'extra'; }); // extras live in the Floaters and extras pill (Dave 11/12)
+    var sh = ''; sugShow.forEach(function(a){ sh += card(a); });
     $('suggestions').innerHTML = sh;
-    $('sugWrap').className = sugA.length ? '' : 'hidden';
+    $('sugWrap').className = sugShow.length ? '' : 'hidden';
 
     function roomState(r){
       var k = Number(r.kids) || 0;
