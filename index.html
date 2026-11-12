@@ -431,7 +431,7 @@
   function combinedTag(r){
     var cf = r && Array.isArray(r.combinedFrom) ? r.combinedFrom : [];
     if (!cf.length) return '';
-    return '<span class="tag combined-tag">🔗 Combined: ' + esc([r.name].concat(cf.map(dispName)).join(' + ')) + '</span>';
+    return '<span class="tag combined-tag">🔗 Combined with ' + esc(cf.map(dispName).join(' + ')) + '</span>';
   }
   function dispName(t){ return String(t == null ? '' : t).replace(/\bPreppers\b/g, 'Prepper A').replace(/School-Age Experience/g, 'School Age'); }
   function alertKey(a){ return String(a.type || '') + '|' + String(a.text || ''); }
