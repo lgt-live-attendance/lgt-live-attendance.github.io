@@ -353,15 +353,13 @@
     if (kind.indexOf('room:') === 0) roomModal(kind.slice(5));
     if (kind === 'kids') { $('modalTitle').textContent = '🧒 Kids by classroom'; $('modalBody').innerHTML = kidsModalHtml(); }
     if (kind === 'teachers') {
-      $('modalTitle').textContent = '👩‍🏫 Teachers on the clock';
+      $('modalTitle').textContent = '👩‍🏫 Teachers in classrooms';
       var list = [];
       LAST_ROOMS.forEach(function(r){ (Array.isArray(r.teachers) ? r.teachers : []).forEach(function(n){ if (n) list.push({n:tName(n), w:r.name, c:''}); }); });
-      (LAST_FLOAT || []).forEach(function(n){ if (n) list.push({n:tName(n), w:'Floater', c:' style="opacity:.8"'}); });
-      (LAST_LUNCH || []).forEach(function(n){ if (n) list.push({n:tName(n), w:'On lunch', c:' style="opacity:.8"'}); });
       list.sort(function(x, y){ return x.n.localeCompare(y.n) || x.w.localeCompare(y.w); });
-      $('modalBody').innerHTML = list.length ? '<div class="mnote">' + list.length + ' on the clock, A to Z</div><table style="width:100%;border-collapse:collapse;font-size:15px">' +
+      $('modalBody').innerHTML = list.length ? '<div class="mnote">' + list.length + ' in classrooms, A to Z</div><table style="width:100%;border-collapse:collapse;font-size:15px">' +
         list.map(function(x){ return '<tr' + x.c + '><td style="padding:6px 4px;border-top:1px solid #eef1f5;font-weight:800">👩‍🏫 ' + esc(x.n) + '</td><td style="padding:6px 4px;border-top:1px solid #eef1f5;text-align:right;color:#5c6573;font-weight:700">' + esc(x.w) + '</td></tr>'; }).join('') + '</table>'
-        : '<div class="mnote">No teachers on the clock right now.</div>';
+        : '<div class="mnote">No teachers signed into classrooms right now.</div>';
     }
     if (kind === 'lunch') {
       $('modalTitle').textContent = '🥪 On lunch';
