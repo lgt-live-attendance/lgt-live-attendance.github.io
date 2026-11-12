@@ -351,6 +351,7 @@
     if (m) return 'probably gone (left ' + m[1] + ')';
     m = g.match(/^parent clocked out\s+(.+)$/i);
     if (m) return 'probably gone (parent clocked out ' + m[1] + ')';
+    if (/^alone, no teacher$/i.test(g)) return 'probably gone (alone, no teacher)';
     return 'probably gone';
   }
   function kidChip(k){
@@ -567,11 +568,8 @@
     $('sugWrap').className = sugShow.length ? '' : 'hidden';
 
     function roomState(r){
-      var k = Number(r.kids) || 0;
-      var n = Array.isArray(r.teachers) ? r.teachers.length : 0;
-      if (k > 0) return 'active';
-      if (n >= 1) return 'staffed';
-      return 'closed';
+      // 0 kids is Closed even if a teacher is still signed in (Dave 11/12 5:36 PM)
+      return (Number(r.kids) || 0) > 0 ? 'active' : 'closed';
     }
     // Fixed age order (Dave 11/12): youngest rooms first; unknown rooms go last in JSON order.
     var AGE_ORDER = ['infant a','infant b','toddlers','twaddlers','prepper a','prepper b','preschool 1a','preschool 1b','preschool 2a','preschool 2b','preschool 3','pre-k','prek','school age','school-age','school age 1','school age 2','school-age experience'];
@@ -612,9 +610,6 @@
       var tags = '';
       if (state === 'active') {
         style = ' style="--c:' + COLORS[activeIdx++ % COLORS.length] + '"';
-      } else if (state === 'staffed') {
-        cls += ' staffed';
-        tags += '<span class="tag attention">No kids · teacher still here</span>';
       } else {
         cls += ' closed';
         tags += '<span class="tag closed-tag">Closed</span>';
