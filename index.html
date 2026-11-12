@@ -184,6 +184,8 @@
     <div id="doneBanner" class="done-banner hidden"></div>
     <h2>🚨 Alerts</h2>
     <div class="alerts" id="alerts"></div>
+    <div id="sugWrap" class="hidden"><h2>💡 Suggestions</h2>
+    <div class="alerts" id="suggestions"></div></div>
     <h2>🧸 Classrooms</h2>
     <div class="totals" id="totals"></div>
     <div class="grid" id="rooms"></div>
@@ -200,7 +202,7 @@
   var STALE_MIN = 20;
   var COLORS = ['#ff7a59','#1e88e5','#2eb872','#8e44ad','#ffb300','#00acc1','#e91e63','#5c6bc0'];
   var META = {
-    combine:{ic:'💡',lbl:'Suggestion · free up a teacher'},
+    combine:{ic:'💡',lbl:'Free up a teacher'},
     empty:{ic:'🟠',lbl:'Empty room'},
     idle:{ic:'🟠',lbl:'Idle teacher'},
     alone:{ic:'🟣',lbl:'Alone'},
@@ -353,18 +355,25 @@
       if (t.indexOf(' ') !== -1 && roomNames.indexOf(t.toLowerCase()) === -1 && !/^(infant|toddler|twaddler|prepper|preschool|school)/i.test(t)) allT.push(t);
     }); });
     ['Maria-Sylva Ramos'].forEach(function(n){ allT.push(n); });
+    var SUG = {combine:1, extra:1, idle:1, empty:1};
+    function card(a){
+      var t = META[a.type] ? a.type : 'extra';
+      var m = META[t];
+      var isNew = fresh.indexOf(a) !== -1;
+      return '<div class="alert ' + t + (isNew ? ' isnew' : '') + '"><div class="ic">' + m.ic + '</div><div><span class="lbl">' + esc(m.lbl) + (isNew ? ' · NEW' : '') + '</span>' + boldify(shortenNames(dispName(a.text), allT), (a.bold || []).map(function(n){ return shortenNames(dispName(n), allT); })) + '</div></div>';
+    }
+    var realA = alerts.filter(function(a){ return !SUG[a.type]; });
+    var sugA = alerts.filter(function(a){ return !!SUG[a.type]; });
     var ah = '';
-    if (!alerts.length) {
+    if (!realA.length) {
       ah = '<div class="allgood">No alerts right now ✅ 🎉</div>';
     } else {
-      alerts.forEach(function(a){
-        var t = META[a.type] ? a.type : 'extra';
-        var m = META[t];
-        var isNew = fresh.indexOf(a) !== -1;
-        ah += '<div class="alert ' + t + (isNew ? ' isnew' : '') + '"><div class="ic">' + m.ic + '</div><div><span class="lbl">' + esc(m.lbl) + (isNew ? ' · NEW' : '') + '</span>' + boldify(shortenNames(dispName(a.text), allT), (a.bold || []).map(function(n){ return shortenNames(dispName(n), allT); })) + '</div></div>';
-      });
+      realA.forEach(function(a){ ah += card(a); });
     }
     $('alerts').innerHTML = ah;
+    var sh = ''; sugA.forEach(function(a){ sh += card(a); });
+    $('suggestions').innerHTML = sh;
+    $('sugWrap').className = sugA.length ? '' : 'hidden';
 
     function roomState(r){
       var k = Number(r.kids) || 0;
