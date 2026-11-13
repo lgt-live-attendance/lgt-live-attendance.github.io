@@ -219,7 +219,7 @@
     <h2>🧸 Classrooms</h2>
     <div class="totals" id="totals"></div>
     <div class="grid" id="rooms"></div>
-    <div id="sugWrap" class="hidden"><h2>💡 Suggestions</h2>
+    <div id="sugWrap" class="hidden"><h2 id="sugH">💡 Suggestions</h2>
     <div class="alerts" id="suggestions"></div></div>
   </section>
 
@@ -565,7 +565,9 @@
     var sugA = alerts.filter(function(a){ return !!SUG[a.type]; });
     var ah = '';
     // Combines show under Alerts as calm cards: no flash, no pop-up, no chime, no room red border (Dave 11/12 3:30 PM)
-    var combA = sugA.filter(function(a){ return a.type === 'combine'; });
+    // Naptime combines sit under Classrooms; after nap they come back up under Alerts (Dave 11/13 1:15 PM)
+    function isNapComb(a){ return a.type === 'combine' && /^Combine for naptime/i.test(String(a.text || '')); }
+    var combA = sugA.filter(function(a){ return a.type === 'combine' && !isNapComb(a); });
     if (!realA.length && !combA.length) {
       ah = '<div class="allgood">No alerts right now ✅ 🎉</div>';
     } else {
@@ -573,8 +575,9 @@
       combA.forEach(function(a){ ah += card(a).replace(' isnew', '').replace(' · NEW', ''); });
     }
     $('alerts').innerHTML = ah;
-    var sugShow = sugA.filter(function(a){ return a.type !== 'extra' && a.type !== 'combine'; }); // extras live in the Floaters and extras pill; combines live under Alerts (Dave 11/12)
-    var sh = ''; sugShow.forEach(function(a){ sh += card(a); });
+    var sugShow = sugA.filter(isNapComb).concat(sugA.filter(function(a){ return a.type !== 'extra' && a.type !== 'combine'; })); // extras live in the Floaters and extras pill; combines live under Alerts (Dave 11/12)
+    var sh = ''; sugShow.forEach(function(a){ sh += isNapComb(a) ? card(a).replace(' isnew', '').replace(' · NEW', '') : card(a); });
+    $('sugH').textContent = sugA.some(isNapComb) ? '😴 Naptime suggestions' : '💡 Suggestions';
     $('suggestions').innerHTML = sh;
     $('sugWrap').className = sugShow.length ? '' : 'hidden';
 
